@@ -8,7 +8,6 @@
     "types": ["vite/client", "vite-plugin-pwa/client"],
     "skipLibCheck": true,
     "strict": true,
-    "ignoreDeprecations": "6.0",
     "baseUrl": ".",
     "paths": {
       "@components/*": ["src/components/*"],
