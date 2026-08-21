@@ -1,0 +1,1 @@
+export { DuelRecentPage } from './DuelHubPage';

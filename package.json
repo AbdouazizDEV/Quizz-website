@@ -1,0 +1,47 @@
+{
+  "name": "quizzweb",
+  "private": true,
+  "version": "1.0.0",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "dev:local": "vite --mode development",
+    "dev:production": "vite --mode production",
+    "build": "tsc -b && vite build",
+    "preview": "vite preview",
+    "lint": "oxlint src config",
+    "format": "prettier --write \"src/**/*.{ts,tsx,css}\" \"config/**/*.ts\"",
+    "sdk:generate": "openapi-typescript openapi/quizz-api.openapi.yaml -o src/sdk/generated/schema.ts"
+  },
+  "dependencies": {
+    "@simplewebauthn/browser": "^13.3.0",
+    "@supabase/supabase-js": "^2.112.3",
+    "@tanstack/react-query": "^5.101.4",
+    "axios": "^1.19.0",
+    "clsx": "^2.1.1",
+    "html2canvas": "^1.4.1",
+    "lucide-react": "^1.33.0",
+    "openapi-fetch": "^0.17.0",
+    "qrcode.react": "^4.2.0",
+    "react": "^19.2.8",
+    "react-dom": "^19.2.8",
+    "react-router-dom": "^7.18.2",
+    "zustand": "^5.0.15"
+  },
+  "devDependencies": {
+    "@eslint/js": "^10.0.1",
+    "@types/node": "^24.13.3",
+    "@types/react": "^19.2.17",
+    "@types/react-dom": "^19.2.3",
+    "@vitejs/plugin-react": "^6.0.4",
+    "eslint": "^10.8.1",
+    "globals": "^17.11.0",
+    "openapi-typescript": "^7.13.0",
+    "oxlint": "^1.75.0",
+    "prettier": "^3.9.6",
+    "typescript": "~6.0.2",
+    "typescript-eslint": "^8.67.0",
+    "vite": "^8.2.0",
+    "vite-plugin-pwa": "^1.3.0"
+  }
+}

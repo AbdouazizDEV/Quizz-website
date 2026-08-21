@@ -1,0 +1,1 @@
+export { PremiumSuccessPage } from './PremiumPage';

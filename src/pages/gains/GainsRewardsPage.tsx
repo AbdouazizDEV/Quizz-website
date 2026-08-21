@@ -1,0 +1,1 @@
+export { GainsRewardsPage } from './GainsHubPage';
