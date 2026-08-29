@@ -6,7 +6,8 @@ Miroir web de **QuizzMobile** : même backend NestJS, mêmes règles métier, in
 
 - React 19 + TypeScript + Vite
 - React Router, TanStack Query, Zustand, Axios
-- Passkeys WebAuthn (`navigator.credentials.create/get`)
+- Auth web : e-mail/pseudo + mot de passe (Nest JWT)
+- Passkeys WebAuthn réservées au mobile (code conservé, hors flux web)
 - `vite-plugin-pwa`
 
 ## Lancer en local
@@ -24,11 +25,11 @@ Ouvre `http://localhost:5173`.
 | Environnement | Variables |
 |---|---|
 | Local | `VITE_APP_ENV=local` · `VITE_API_URL=http://localhost:3000/api/v1` |
-| Production | `VITE_APP_ENV=production` · `VITE_API_URL=https://quizz-p4ze.onrender.com/api/v1` |
+| Production | `VITE_APP_ENV=production` · `VITE_API_URL=https://api.quizzp.com/api/v1` |
 
 Le backend NestJS n’est **pas** dans ce repo. En local, lance Quizzback sur le port 3000.
 
-Health check : `https://quizz-p4ze.onrender.com/health`
+Health check : `https://api.quizzp.com/health`
 
 ### Catalogue quiz (catégories / questions)
 
@@ -188,21 +189,19 @@ Hub Gains : rang + points via `auth/me` + leaderboard. Catalogue récompenses / 
 
 Profil self : tabs Mes quiz / Trophées / À propos, upload avatar/cover. Profil externe : `viewer_relationship` (`none` → Suivre, `pending` / `friends` désactivés).
 
-## Passkeys (WebAuthn)
+## Authentification (web)
 
-Flux :
+Flux principal du site (`https://quizzp.com`) :
 
-1. Inscription : `POST /auth/passkey/register/options` → `navigator.credentials.create` → `POST /auth/passkey/register/verify`
-2. Connexion : `POST /auth/passkey/login/options` → `navigator.credentials.get` → `POST /auth/passkey/login/verify`
-3. Session JWT : `access_token` + `refresh_token` (localStorage) · intercepteur Axios Bearer · refresh sur 401 via `POST /auth/passkey/refresh`
+1. Inscription : onboarding (type, workplace, profil) → `POST /auth/register` avec `{ email, username, password, … }`
+2. Connexion : `POST /auth/login` avec `{ email | username, password }`
+3. Mot de passe oublié : `POST /auth/forgot-password` → OTP → `POST /auth/verify-otp` → `POST /auth/reset-password`
+4. Session JWT : `access_token` + `refresh_token` (localStorage) · intercepteur Axios Bearer · refresh via `POST /auth/passkey/refresh` (endpoint commun password + passkey)
+5. Déconnexion : `POST /auth/logout`
 
-Backend actuel :
+### Passkeys (mobile uniquement)
 
-- `WEBAUTHN_RP_ID=quizz-p4ze.onrender.com`
-- `WEBAUTHN_ORIGIN=https://quizz-p4ze.onrender.com`
-
-**En local**, les passkeys ne fonctionnent que si le backend accepte l’origine Vite (`http://localhost:5173`) et un RP ID compatible (`localhost`).  
-**En production**, héberger ce PWA sur un domaine lié au RP ID (idéalement sous `quizz-p4ze.onrender.com`).
+Le code `passkeyAuthService` / WebAuthn reste dans le repo pour QuizzMobile ou un usage web futur, mais **n’est plus branché** sur `/login` et `/register` web.
 
 ## Scripts
 

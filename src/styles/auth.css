@@ -516,6 +516,78 @@
   cursor: not-allowed;
 }
 
+.auth-password-toggle {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  margin: 0;
+  padding: 4px;
+  border: 0;
+  background: transparent;
+  cursor: pointer;
+  flex-shrink: 0;
+}
+
+.auth-links {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  margin-top: 8px;
+}
+
+.auth-text-link {
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--auth-violet);
+  text-decoration: underline;
+}
+
+.auth-text-link--button {
+  display: inline-flex;
+  align-self: flex-start;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  font-family: inherit;
+  cursor: pointer;
+}
+
+.auth-text-link--button:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.auth-info {
+  margin: 0 0 8px;
+  font-size: 14px;
+  line-height: 20px;
+  color: #2e7d32;
+}
+
+.auth-otp-row {
+  display: flex;
+  gap: 12px;
+  justify-content: center;
+  margin: 8px 0 16px;
+}
+
+.auth-otp-box {
+  width: 56px;
+  height: 56px;
+  border: 1.5px solid #e8e8e8;
+  border-radius: 12px;
+  text-align: center;
+  font-size: 22px;
+  font-weight: 700;
+  color: #212121;
+  background: #fff;
+  outline: none;
+}
+
+.auth-otp-box:focus {
+  border-color: #ffd700;
+}
+
 .auth-date-wrap {
   position: relative;
   width: 100%;

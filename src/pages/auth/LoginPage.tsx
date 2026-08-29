@@ -1,5 +1,5 @@
 import { useCallback, useState, type FormEvent } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { AuthShell } from '@components/ui/auth/AuthShell';
 import { UnderlineLabeledField } from '@components/ui/auth/UnderlineLabeledField';
 import { Icon } from '@components/ui/Icon';
@@ -10,15 +10,15 @@ import { persistPasskeyAuthResult, signOutAndSyncStore } from '@services/auth/au
 import { getAuthMeFromStore } from '@services/auth/authMeRepository';
 import { mapLoginUserToAuthMe } from '@services/auth/mapLoginToAuthMe';
 import { loginGateway } from '@services/auth/loginGatewayInstance';
-import { toFrenchPasskeyError } from '@services/auth/passkeyAuthService';
+import { toFrenchPasswordAuthError } from '@services/auth/passwordAuthService';
 
 export function LoginPage() {
   const navigate = useNavigate();
   const [identifier, setIdentifier] = useState('');
+  const [password, setPassword] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
   const [submitting, setSubmitting] = useState(false);
-  const [discoverableSubmitting, setDiscoverableSubmitting] = useState(false);
   const [formError, setFormError] = useState<string | null>(null);
-  const busy = submitting || discoverableSubmitting;
 
   const finishLogin = useCallback(
     async (result: Awaited<ReturnType<typeof loginGateway.signIn>>) => {
@@ -38,33 +38,24 @@ export function LoginPage() {
 
   const onSubmit = async (event?: FormEvent) => {
     event?.preventDefault();
-    if (busy) return;
+    if (submitting) return;
     const trimmed = identifier.trim();
     if (!trimmed) {
       setFormError('Saisissez votre e-mail ou nom d’utilisateur.');
       return;
     }
+    if (!password) {
+      setFormError('Saisissez votre mot de passe.');
+      return;
+    }
     setFormError(null);
     setSubmitting(true);
     try {
-      await finishLogin(await loginGateway.signIn({ identifier: trimmed }));
+      await finishLogin(await loginGateway.signIn({ identifier: trimmed, password }));
     } catch (error) {
-      setFormError(toFrenchPasskeyError(error));
+      setFormError(toFrenchPasswordAuthError(error));
     } finally {
       setSubmitting(false);
-    }
-  };
-
-  const onDiscoverable = async () => {
-    if (busy) return;
-    setFormError(null);
-    setDiscoverableSubmitting(true);
-    try {
-      await finishLogin(await loginGateway.signInDiscoverable());
-    } catch (error) {
-      setFormError(toFrenchPasskeyError(error));
-    } finally {
-      setDiscoverableSubmitting(false);
     }
   };
 
@@ -73,20 +64,20 @@ export function LoginPage() {
       variant="login"
       artSrc="/assets/icons/image2.png"
       headline="Bon retour parmi nous"
-      subline="Connecte-toi avec Face ID, empreinte ou une passkey déjà enregistrée."
+      subline="Connectez-vous avec votre e-mail ou pseudo et votre mot de passe."
       footer={
         <footer className="auth-footer auth-footer--continue auth-footer--login">
           <div className="auth-footer-inner">
-            {busy ? (
+            {submitting ? (
               <div className="auth-loader-row">
                 <div className="auth-loader" aria-hidden />
               </div>
             ) : null}
             <WalkthroughActionButton
-              label="SE CONNECTER AVEC PASSKEY"
+              label="SE CONNECTER"
               variant="primary"
               onClick={() => void onSubmit()}
-              disabled={busy}
+              disabled={submitting}
             />
           </div>
         </footer>
@@ -103,7 +94,7 @@ export function LoginPage() {
       <div className="auth-text-block auth-text-block--login">
         <h1 className="auth-title login-title">Bonjour 👋</h1>
         <p className="auth-subtitle auth-subtitle--login">
-          Connectez-vous avec Face ID ou empreinte digitale.
+          Connectez-vous avec votre e-mail ou pseudo et mot de passe.
         </p>
       </div>
       <form className="auth-form auth-form--login" onSubmit={(e) => void onSubmit(e)}>
@@ -113,16 +104,33 @@ export function LoginPage() {
           value={identifier}
           onChangeText={setIdentifier}
           placeholder={AUTH_FORM_PLACEHOLDERS.email}
-          autoComplete="username webauthn"
+          autoComplete="username"
         />
-        <button
-          type="button"
-          className="auth-discoverable"
-          onClick={() => void onDiscoverable()}
-          disabled={busy}
-        >
-          Utiliser un passkey enregistré sur cet appareil
-        </button>
+        <UnderlineLabeledField
+          label="Mot de passe"
+          value={password}
+          onChangeText={setPassword}
+          type={showPassword ? 'text' : 'password'}
+          autoComplete="current-password"
+          rightSlot={
+            <button
+              type="button"
+              className="auth-password-toggle"
+              aria-label={showPassword ? 'Masquer le mot de passe' : 'Afficher le mot de passe'}
+              onClick={() => setShowPassword((v) => !v)}
+            >
+              <Icon name={showPassword ? 'eye-off' : 'eye'} size={20} color="#9E9E9E" />
+            </button>
+          }
+        />
+        <div className="auth-links">
+          <Link to={Routes.FORGOT_PASSWORD} className="auth-text-link">
+            Mot de passe oublié ?
+          </Link>
+          <Link to={Routes.CREATE_ACCOUNT_TYPE} className="auth-text-link">
+            Créer un compte
+          </Link>
+        </div>
       </form>
     </AuthShell>
   );

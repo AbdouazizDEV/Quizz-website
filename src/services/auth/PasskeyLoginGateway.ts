@@ -1,3 +1,7 @@
+/**
+ * @deprecated Passkeys hors flux web principal — réservé QuizzMobile / usage futur.
+ * Le gateway actif est `PasswordLoginGateway` (`loginGatewayInstance`).
+ */
 import { loginWithPasskey } from './passkeyAuthService';
 import type { ILoginGateway } from './ILoginGateway';
 import type { components } from '@sdk';
@@ -10,7 +14,8 @@ function looksLikeEmail(value: string): boolean {
 }
 
 export class PasskeyLoginGateway implements ILoginGateway {
-  async signIn(credentials: { identifier: string }) {
+  async signIn(credentials: { identifier: string; password?: string }) {
+    void credentials.password;
     const identifier = credentials.identifier.trim();
     if (!identifier) {
       throw new Error('Saisissez votre e-mail ou nom d’utilisateur.');

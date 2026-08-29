@@ -1,23 +1,22 @@
-export interface LoginCredentials {
-  identifier: string;
-}
-
 import type { components } from '@sdk';
 import type { AuthSessionPayload } from '@app-types/authSession.types';
 
 type AuthUser = components['schemas']['AuthUser'];
 
+export interface LoginCredentials {
+  identifier: string;
+  password: string;
+}
+
+export type LoginResult = {
+  accessToken: string;
+  refreshToken: string;
+  user?: AuthUser;
+  session?: AuthSessionPayload;
+};
+
 export interface ILoginGateway {
-  signIn(credentials: LoginCredentials): Promise<{
-    accessToken: string;
-    refreshToken: string;
-    user?: AuthUser;
-    session?: AuthSessionPayload;
-  }>;
-  signInDiscoverable(): Promise<{
-    accessToken: string;
-    refreshToken: string;
-    user?: AuthUser;
-    session?: AuthSessionPayload;
-  }>;
+  signIn(credentials: LoginCredentials): Promise<LoginResult>;
+  /** Optionnel — passkeys réservées au mobile ; no-op / erreur claire sur le web. */
+  signInDiscoverable?(): Promise<LoginResult>;
 }

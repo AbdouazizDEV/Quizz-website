@@ -1,3 +1,3 @@
-import { PasskeyLoginGateway } from './PasskeyLoginGateway';
+import { PasswordLoginGateway } from './PasswordLoginGateway';
 
-export const loginGateway = new PasskeyLoginGateway();
+export const loginGateway = new PasswordLoginGateway();

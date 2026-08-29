@@ -1,5 +1,5 @@
 const DEFAULT_LOCAL = 'http://localhost:3000/api/v1';
-const DEFAULT_PRODUCTION = 'https://quizz-p4ze.onrender.com/api/v1';
+const DEFAULT_PRODUCTION = 'https://api.quizzp.com/api/v1';
 
 export function resolveApiBaseUrl(): string {
   const fromEnv = import.meta.env.VITE_API_URL?.trim();

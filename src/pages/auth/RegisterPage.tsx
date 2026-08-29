@@ -3,25 +3,31 @@ import { useNavigate } from 'react-router-dom';
 import { AuthShell } from '@components/ui/auth/AuthShell';
 import { PasswordSuccessModal } from '@components/ui/auth/PasswordSuccessModal';
 import { UnderlineLabeledField } from '@components/ui/auth/UnderlineLabeledField';
+import { Icon } from '@components/ui/Icon';
 import { OnboardingContinueBar } from '@components/ui/onboarding/OnboardingContinueBar';
 import { OnboardingNavbar } from '@components/ui/onboarding/OnboardingNavbar';
 import { AUTH_FORM_PLACEHOLDERS } from '@constants/authFormPlaceholders';
 import { Routes } from '@constants/Routes';
 import { persistPasskeyAuthResult } from '@services/auth/authSessionController';
 import { mapLoginUserToAuthMe } from '@services/auth/mapLoginToAuthMe';
-import { registerWithPasskey, toFrenchPasskeyError } from '@services/auth/passkeyAuthService';
+import { registerWithPassword, toFrenchPasswordAuthError } from '@services/auth/passwordAuthService';
 import { useOnboardingRegisterStore } from '@stores/onboardingRegisterStore';
 
 const SUCCESS_MODAL_MS = 5_000;
+const MIN_PASSWORD_LENGTH = 6;
 
 function formatRegisterApiError(raw: unknown): string {
-  return toFrenchPasskeyError(raw) || 'Impossible de finaliser l’inscription. Réessayez.';
+  return toFrenchPasswordAuthError(raw) || 'Impossible de finaliser l’inscription. Réessayez.';
 }
 
 export function RegisterPage() {
   const navigate = useNavigate();
   const [username, setUsername] = useState('');
   const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
+  const [showConfirm, setShowConfirm] = useState(false);
   const [showSuccess, setShowSuccess] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [formError, setFormError] = useState<string | null>(null);
@@ -48,13 +54,22 @@ export function RegisterPage() {
       setFormError('Le nom d’utilisateur ne peut pas dépasser 50 caractères.');
       return;
     }
+    if (password.length < MIN_PASSWORD_LENGTH) {
+      setFormError(`Le mot de passe doit contenir au moins ${MIN_PASSWORD_LENGTH} caractères.`);
+      return;
+    }
+    if (password !== confirmPassword) {
+      setFormError('Les mots de passe ne correspondent pas.');
+      return;
+    }
 
     const onboarding = useOnboardingRegisterStore.getState();
     setSubmitting(true);
     try {
-      const { user, session } = await registerWithPasskey({
+      const { user, session } = await registerWithPassword({
         email: trimmedEmail,
         username: trimmedUsername,
+        password,
         account_type: onboarding.accountTypeId || undefined,
         workplace: onboarding.workplaceId || undefined,
         full_name: onboarding.fullName.trim() || undefined,
@@ -77,10 +92,10 @@ export function RegisterPage() {
       variant="login"
       artSrc="/assets/icons/image1.png"
       headline="Presque prêt à jouer"
-      subline="Une passkey remplace le mot de passe. Plus simple, plus sûr."
+      subline="Créez votre compte en quelques secondes."
       footer={
         <OnboardingContinueBar
-          label={submitting ? 'Inscription…' : 'Inscrivez-vous avec Passkey'}
+          label={submitting ? 'Inscription…' : 'CRÉER MON COMPTE'}
           onPress={() => void handleSignup()}
           disabled={submitting}
         />
@@ -91,7 +106,7 @@ export function RegisterPage() {
         <div className="auth-text-block">
           <h1 className="auth-title profile-title">Créer un compte ✏️</h1>
           <p className="auth-subtitle auth-subtitle--register">
-            Veuillez saisir votre nom d&apos;utilisateur, votre adresse e-mail et votre mot de passe.
+            Saisissez votre nom d&apos;utilisateur, e-mail et mot de passe.
           </p>
         </div>
         <div className="auth-form">
@@ -111,9 +126,40 @@ export function RegisterPage() {
             type="email"
             autoComplete="email"
           />
-          <p className="auth-passkey-hint">
-            Vous configurerez Face ID ou empreinte digitale à l’étape suivante.
-          </p>
+          <UnderlineLabeledField
+            label="Mot de passe"
+            value={password}
+            onChangeText={setPassword}
+            type={showPassword ? 'text' : 'password'}
+            autoComplete="new-password"
+            rightSlot={
+              <button
+                type="button"
+                className="auth-password-toggle"
+                aria-label={showPassword ? 'Masquer le mot de passe' : 'Afficher le mot de passe'}
+                onClick={() => setShowPassword((v) => !v)}
+              >
+                <Icon name={showPassword ? 'eye-off' : 'eye'} size={20} color="#9E9E9E" />
+              </button>
+            }
+          />
+          <UnderlineLabeledField
+            label="Confirmer le mot de passe"
+            value={confirmPassword}
+            onChangeText={setConfirmPassword}
+            type={showConfirm ? 'text' : 'password'}
+            autoComplete="new-password"
+            rightSlot={
+              <button
+                type="button"
+                className="auth-password-toggle"
+                aria-label={showConfirm ? 'Masquer le mot de passe' : 'Afficher le mot de passe'}
+                onClick={() => setShowConfirm((v) => !v)}
+              >
+                <Icon name={showConfirm ? 'eye-off' : 'eye'} size={20} color="#9E9E9E" />
+              </button>
+            }
+          />
           {formError ? <p className="auth-error">{formError}</p> : null}
         </div>
       </div>

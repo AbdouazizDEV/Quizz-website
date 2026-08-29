@@ -1,3 +1,8 @@
+/**
+ * Passkeys WebAuthn — réservé QuizzMobile / usage web futur.
+ * Le flux web principal utilise `passwordAuthService` (e-mail/pseudo + mot de passe).
+ * Le refresh JWT commun reste `POST /auth/passkey/refresh` (password + passkey).
+ */
 import { AppConfig } from '@config';
 import { parseQuizzApiError } from '@sdk';
 import type {
@@ -31,7 +36,7 @@ export function toFrenchPasskeyError(raw: unknown): string {
     lower.includes('rp id') ||
     lower.includes('securityerror')
   ) {
-    return 'La passkey ne peut pas être utilisée depuis cette origine. En local, le backend doit accepter http://localhost:5173. En production, hébergez le site sous le domaine du RP ID (quizz-p4ze.onrender.com).';
+    return 'La passkey ne peut pas être utilisée depuis cette origine. Vérifiez que le site et le backend partagent le même domaine RP (ex. quizzp.com).';
   }
 
   if (lower.includes('notallowederror') || lower.includes('not allowed')) {
