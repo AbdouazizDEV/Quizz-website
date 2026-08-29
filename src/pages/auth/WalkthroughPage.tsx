@@ -1,64 +1,52 @@
 import { useState } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
+import { AuthShell } from '@components/ui/auth/AuthShell';
+import { WalkthroughBottomBar } from '@components/ui/walkthrough/WalkthroughBottomBar';
+import { WalkthroughCarousel } from '@components/ui/walkthrough/WalkthroughCarousel';
+import { WalkthroughPagination } from '@components/ui/walkthrough/WalkthroughPagination';
 import { Routes } from '@constants/Routes';
+import { useAutoCarousel } from '@hooks/useAutoCarousel';
+import type { WalkthroughSlide } from '@app-types/walkthrough.types';
 
-const SLIDES = [
+const SLIDES: WalkthroughSlide[] = [
   {
-    title: 'Joue à des quiz fun',
-    body: 'Des milliers de questions, un chrono, des sons et des points selon la difficulté.',
+    id: 'slide-1',
+    title: 'Créez, partagez et jouez à des quiz quand et où vous le souhaitez',
     image: '/assets/icons/image1.png',
   },
   {
-    title: 'Défie tes amis',
-    body: 'Duels, challenges hebdo et tournois pour grimper au classement.',
+    id: 'slide-2',
+    title: 'Trouvez des quiz amusants et intéressants pour améliorer vos connaissances',
     image: '/assets/icons/image2.png',
   },
   {
-    title: 'Gagne des récompenses',
-    body: 'Streak, cash prizes et bons d’achat pour les meilleurs joueurs.',
+    id: 'slide-3',
+    title: 'Jouez et relevez des défis de quiz avec vos amis.',
     image: '/assets/icons/image3.png',
   },
 ];
 
 export function WalkthroughPage() {
   const navigate = useNavigate();
-  const [index, setIndex] = useState(0);
-  const slide = SLIDES[index];
+  const [activeIndex, setActiveIndex] = useState(0);
+  useAutoCarousel({ itemCount: SLIDES.length, intervalMs: 3_000, setIndex: setActiveIndex });
+  const current = SLIDES[activeIndex] ?? SLIDES[0];
 
   return (
-    <div className="auth-page">
-      <div className="auth-inner" style={{ display: 'flex', flexDirection: 'column', minHeight: '100svh' }}>
-        <img src={slide.image} alt="" style={{ width: '100%', maxHeight: 280, objectFit: 'contain', marginTop: 24 }} />
-        <h1 style={{ fontSize: 32, margin: '24px 0 8px' }}>{slide.title}</h1>
-        <p className="muted">{slide.body}</p>
-        <div style={{ display: 'flex', gap: 8, margin: '24px 0' }}>
-          {SLIDES.map((_, i) => (
-            <span
-              key={i}
-              style={{
-                width: i === index ? 22 : 8,
-                height: 8,
-                borderRadius: 99,
-                background: i === index ? '#E8431A' : '#E5E5EA',
-              }}
-            />
-          ))}
-        </div>
-        <div style={{ marginTop: 'auto', display: 'grid', gap: 12, paddingBottom: 24 }}>
-          {index < SLIDES.length - 1 ? (
-            <button type="button" className="btn btn-primary" onClick={() => setIndex((i) => i + 1)}>
-              Continuer
-            </button>
-          ) : (
-            <button type="button" className="btn btn-primary" onClick={() => navigate(Routes.CREATE_ACCOUNT_TYPE)}>
-              Créer un compte
-            </button>
-          )}
-          <Link to={Routes.LOGIN} className="btn btn-ghost" style={{ textAlign: 'center' }}>
-            J’ai déjà un compte
-          </Link>
-        </div>
-      </div>
-    </div>
+    <AuthShell
+      variant="walkthrough"
+      artSrc={current.image}
+      headline={current.title}
+      subline="Le même Quizz+ que sur mobile, pensé pour le web."
+      footer={
+        <WalkthroughBottomBar
+          onPressStart={() => navigate(Routes.CREATE_ACCOUNT_TYPE)}
+          onPressSignin={() => navigate(Routes.LOGIN)}
+        />
+      }
+    >
+      <WalkthroughCarousel slides={SLIDES} activeIndex={activeIndex} />
+      <WalkthroughPagination total={SLIDES.length} activeIndex={activeIndex} />
+    </AuthShell>
   );
 }

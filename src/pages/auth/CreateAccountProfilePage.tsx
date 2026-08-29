@@ -1,67 +1,106 @@
-import { useState } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { useMemo, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
+import { AuthShell } from '@components/ui/auth/AuthShell';
+import { OnboardingContinueBar } from '@components/ui/onboarding/OnboardingContinueBar';
+import { OnboardingCountryPickerField } from '@components/ui/onboarding/OnboardingCountryPickerField';
+import { OnboardingDateField } from '@components/ui/onboarding/OnboardingDateField';
+import { OnboardingFilledField } from '@components/ui/onboarding/OnboardingFilledField';
+import { OnboardingInternationalPhoneField } from '@components/ui/onboarding/OnboardingInternationalPhoneField';
+import { OnboardingNavbar } from '@components/ui/onboarding/OnboardingNavbar';
 import { AUTH_FORM_PLACEHOLDERS } from '@constants/authFormPlaceholders';
+import { getDefaultAuthCountry, toE164 } from '@constants/authCountries';
 import { Routes } from '@constants/Routes';
+import { notifyUser } from '@platform/notify';
 import { useOnboardingRegisterStore } from '@stores/onboardingRegisterStore';
-import { Icon } from '@components/ui/Icon';
+
+function computeAge(birth: Date): number {
+  const today = new Date();
+  let age = today.getFullYear() - birth.getFullYear();
+  const m = today.getMonth() - birth.getMonth();
+  if (m < 0 || (m === 0 && today.getDate() < birth.getDate())) {
+    age -= 1;
+  }
+  return Math.max(0, age);
+}
 
 export function CreateAccountProfilePage() {
   const navigate = useNavigate();
-  const setProfile = useOnboardingRegisterStore((s) => s.setProfile);
   const [fullName, setFullName] = useState('');
-  const [birthDate, setBirthDate] = useState('');
-  const [countryCca2, setCountryCca2] = useState('SN');
-  const [phone, setPhone] = useState('');
-  const [error, setError] = useState<string | null>(null);
+  const [birthDate, setBirthDate] = useState<Date | null>(null);
+  const [selectedCountry, setSelectedCountry] = useState(getDefaultAuthCountry);
+  const [phoneValue, setPhoneValue] = useState('');
+  const setProfile = useOnboardingRegisterStore((s) => s.setProfile);
+  const ageLabel = useMemo(() => (birthDate ? String(computeAge(birthDate)) : ''), [birthDate]);
 
-  const onContinue = () => {
-    if (!fullName.trim() || !birthDate || !phone.trim()) {
-      setError('Complète ton nom, ta date de naissance et ton téléphone.');
+  const handleContinue = () => {
+    if (!birthDate) {
+      notifyUser('Profil incomplet', 'Indiquez votre date de naissance.');
+      return;
+    }
+    const y = birthDate.getFullYear();
+    const m = String(birthDate.getMonth() + 1).padStart(2, '0');
+    const d = String(birthDate.getDate()).padStart(2, '0');
+    const birthDateIso = `${y}-${m}-${d}`;
+    const phoneE164 = toE164(selectedCountry.dial, phoneValue) || phoneValue.replace(/\s/g, '');
+    if (!fullName.trim() || !phoneE164) {
+      notifyUser('Profil incomplet', 'Indiquez au minimum votre nom et votre numéro de téléphone.');
       return;
     }
     setProfile({
       fullName: fullName.trim(),
-      birthDateIso: birthDate,
-      countryCca2,
-      phoneE164: phone.trim(),
+      birthDateIso,
+      countryCca2: selectedCountry.cca2,
+      phoneE164,
     });
     navigate(Routes.REGISTER);
   };
 
   return (
-    <div className="auth-page">
-      <div className="auth-inner">
-        <Link to={Routes.CREATE_ACCOUNT_WORKPLACE}><Icon name="chevron-left" /></Link>
-        <div style={{ height: 8, background: '#F0F0F0', borderRadius: 99, margin: '20px 0' }}>
-          <div style={{ width: '85%', height: '100%', background: '#F5A623', borderRadius: 99 }} />
-        </div>
-        <h1>Ton profil</h1>
-        <div style={{ display: 'grid', gap: 24, marginTop: 24 }}>
-          <label className="field">
-            <span>Nom complet</span>
-            <input value={fullName} onChange={(e) => setFullName(e.target.value)} placeholder={AUTH_FORM_PLACEHOLDERS.fullName} />
-          </label>
-          <label className="field">
-            <span>Date de naissance</span>
-            <input type="date" value={birthDate} onChange={(e) => setBirthDate(e.target.value)} />
-          </label>
-          <label className="field">
-            <span>Pays</span>
-            <select value={countryCca2} onChange={(e) => setCountryCca2(e.target.value)}>
-              <option value="SN">Sénégal (+221)</option>
-              <option value="CI">Côte d’Ivoire (+225)</option>
-              <option value="FR">France (+33)</option>
-              <option value="ML">Mali (+223)</option>
-            </select>
-          </label>
-          <label className="field">
-            <span>Téléphone</span>
-            <input value={phone} onChange={(e) => setPhone(e.target.value)} placeholder={AUTH_FORM_PLACEHOLDERS.phone} />
-          </label>
-          {error ? <p className="error-text">{error}</p> : null}
-          <button type="button" className="btn btn-primary" onClick={onContinue}>Continuer</button>
+    <AuthShell
+      artSrc="/assets/icons/image3.png"
+      headline="Ton profil, tes règles"
+      subline="Ces infos restent privées. Elles servent uniquement à personnaliser ton expérience."
+      footer={<OnboardingContinueBar onPress={handleContinue} />}
+    >
+      <OnboardingNavbar progress={1} onBack={() => navigate(Routes.CREATE_ACCOUNT_WORKPLACE)} />
+      <div className="auth-text-block">
+        <h1 className="auth-title profile-title">Créer un compte ✏️</h1>
+        <p className="auth-subtitle auth-subtitle--profile">
+          Veuillez compléter votre profil. Ne vous inquiétez pas, vos données resteront privées et
+          vous seul pourrez les voir.
+        </p>
+      </div>
+      <div className="auth-scroll">
+        <div className="auth-form auth-form--profile">
+          <OnboardingFilledField
+            label="Nom complet"
+            value={fullName}
+            onChangeText={setFullName}
+            placeholder={AUTH_FORM_PLACEHOLDERS.fullName}
+            inputProps={{ autoComplete: 'name' }}
+          />
+          <OnboardingDateField
+            label="Date de naissance"
+            value={birthDate}
+            onChange={setBirthDate}
+            placeholder={AUTH_FORM_PLACEHOLDERS.birthDate}
+          />
+          <OnboardingInternationalPhoneField
+            label="Numéro de téléphone"
+            country={selectedCountry}
+            onChangeCountry={setSelectedCountry}
+            nationalNumber={phoneValue}
+            onChangePhoneNumber={setPhoneValue}
+            placeholder={AUTH_FORM_PLACEHOLDERS.phone}
+          />
+          <OnboardingCountryPickerField
+            label="Pays"
+            country={selectedCountry}
+            onChangeCountry={setSelectedCountry}
+          />
+          <OnboardingFilledField label="Âge" value={ageLabel} editable={false} />
         </div>
       </div>
-    </div>
+    </AuthShell>
   );
 }

@@ -1,7 +1,10 @@
 import { useCallback, useEffect, useMemo, useRef } from 'react';
 import { useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import { useQueryClient } from '@tanstack/react-query';
-import { QuizPlayTheme, QUIZ_OPTION_CARD_STYLES } from '@constants/quizPlayTheme';
+import { QuizPlayNavbar } from '@components/ui/quiz/play/QuizPlayNavbar';
+import { QuizQuestionHeader } from '@components/ui/quiz/play/QuizQuestionHeader';
+import { QuizAnswerGrid } from '@components/ui/quiz/play/QuizAnswerGrid';
+import { QuizFeedbackFunFactModal } from '@components/ui/quiz/play/QuizFeedbackFunFactModal';
 import { useAuthMe } from '@hooks/useAuthMe';
 import { useQuestionTimer } from '@hooks/useQuestionTimer';
 import { recordChallengeParticipation } from '@services/defis/participateChallenge.service';
@@ -15,7 +18,6 @@ import { useQuizPlaySessionStore } from '@stores/quizPlaySessionStore';
 import { useAppError } from '@providers/AppErrorProvider';
 import { seedDuelQueryCache } from '@hooks/defis/useDuelQuery';
 import { notifyUser } from '@platform/notify';
-import { Icon } from '@components/ui/Icon';
 
 export function QuizPlayPage() {
   const navigate = useNavigate();
@@ -30,6 +32,8 @@ export function QuizPlayPage() {
   const sessionPoints = useQuizPlaySessionStore((s) => s.sessionPoints);
   const selectedOptionId = useQuizPlaySessionStore((s) => s.selectedOptionId);
   const feedbackPhase = useQuizPlaySessionStore((s) => s.feedbackPhase);
+  const lastPointsEarned = useQuizPlaySessionStore((s) => s.lastPointsEarned);
+  const correctAnswerLabel = useQuizPlaySessionStore((s) => s.correctAnswerLabel);
   const secondsPerQuestion = useQuizPlaySessionStore((s) => s.secondsPerQuestion);
   const selectOption = useQuizPlaySessionStore((s) => s.selectOption);
   const advanceFromFeedback = useQuizPlaySessionStore((s) => s.advanceFromFeedback);
@@ -125,10 +129,13 @@ export function QuizPlayPage() {
         if (result.queued) notifyUser('Duel', 'Score enregistré — sync à la reconnexion.');
         else if (result.data) {
           seedDuelQueryCache(queryClient, result.data);
-          await queryClient.invalidateQueries({ queryKey: ['duels-pending'] });
-          await queryClient.invalidateQueries({ queryKey: ['duels-recent'] });
-          void invalidateAuthMeCache();
         }
+        await queryClient.invalidateQueries({ queryKey: ['duels-pending'] });
+        await queryClient.invalidateQueries({ queryKey: ['duels-recent'] });
+        await queryClient.invalidateQueries({ queryKey: ['duels-pending-list'] });
+        await queryClient.invalidateQueries({ queryKey: ['duels-recent-list'] });
+        await queryClient.invalidateQueries({ queryKey: ['defis-dashboard'] });
+        void invalidateAuthMeCache();
       } catch (error) {
         const message = error instanceof Error ? error.message : 'Score duel non enregistré.';
         if (!message.includes('déjà joué')) showAppError(message, { title: 'Duel' });
@@ -139,6 +146,10 @@ export function QuizPlayPage() {
       try {
         await recordChallengeParticipation(userId, challengeId, quizId, earned);
         await queryClient.invalidateQueries({ queryKey: ['weekly-challenges'] });
+        await queryClient.invalidateQueries({ queryKey: ['challenge'] });
+        await queryClient.invalidateQueries({ queryKey: ['challenge-leaderboard'] });
+        await queryClient.invalidateQueries({ queryKey: ['defis-dashboard'] });
+        void invalidateAuthMeCache();
       } catch (error) {
         showAppError(error instanceof Error ? error.message : 'Score challenge non enregistré.', { title: 'Challenge' });
       }
@@ -150,63 +161,72 @@ export function QuizPlayPage() {
     navigate(`/quiz/${quizId}/congrats${qs.toString() ? `?${qs}` : ''}`, { replace: true });
   };
 
-  if (!payload || !question) return <p style={{ padding: 24 }}>Chargement…</p>;
+  if (!payload || !question) {
+    return (
+      <div className="quiz-play-page">
+        <div className="quiz-play-scroll">
+          <p>Chargement…</p>
+        </div>
+      </div>
+    );
+  }
 
   const total = payload.questions.length;
   const revealed = feedbackPhase !== 'idle';
+  const maxSessionPoints = payload.questions.reduce(
+    (sum, q) => sum + pointsForDifficulty(q.difficulty),
+    0,
+  );
 
   return (
-    <div style={{ minHeight: '100svh', background: '#fff', padding: 20, paddingBottom: 140 }}>
-      <div style={{ width: 'min(100%, 420px)', margin: '0 auto', display: 'grid', gap: 20 }}>
-        <header style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-          <button type="button" className="btn btn-ghost" style={{ padding: 8 }} onClick={() => {
-            if (window.confirm('Quitter le quiz ? Ta progression sur cette question sera perdue.')) {
-              reset();
-              navigate(-1);
-            }
-          }}>
-            <Icon name="x" />
-          </button>
-          <strong>{currentIndex + 1}/{total}</strong>
-          <span style={{ fontWeight: 900 }}>{sessionPoints} pts</span>
-        </header>
-        <div className="progress-bar" style={{ background: '#F0F0F0' }}>
-          <span style={{ width: `${(timeLeft / secondsPerQuestion) * 100}%`, background: timeLeft < 5 ? QuizPlayTheme.error : '#1F2261' }} />
-        </div>
-        <div style={{ textAlign: 'center', fontWeight: 800 }}>{timeLeft}s</div>
-        {question.imageUrl ? <img src={question.imageUrl} alt="" style={{ borderRadius: 16, maxHeight: 220, objectFit: 'cover' }} /> : null}
-        <h2>{question.questionText}</h2>
-        <div style={{ display: 'grid', gap: 12 }}>
-          {question.options.map((opt, i) => {
-            const style = QUIZ_OPTION_CARD_STYLES[i % QUIZ_OPTION_CARD_STYLES.length];
-            let bg: string = style.bg;
-            if (revealed && opt.id === question.correctOptionId) bg = QuizPlayTheme.success;
-            else if (revealed && opt.id === selectedOptionId) bg = QuizPlayTheme.error;
-            return (
-              <button
-                key={opt.id}
-                type="button"
-                className="quiz-option"
-                style={{ background: bg }}
-                disabled={revealed}
-                onClick={() => onPick(opt.id)}
-              >
-                {opt.label}
-              </button>
-            );
-          })}
-        </div>
-      </div>
-      {revealed ? (
-        <div className="modal-backdrop">
-          <div className="modal-card">
-            <h2>{feedbackPhase === 'correct' ? 'Bonne réponse !' : feedbackPhase === 'timeout' ? 'Temps écoulé' : 'Mauvaise réponse'}</h2>
-            {question.explanation ? <p className="muted">{question.explanation}</p> : null}
-            <button type="button" className="btn btn-primary" style={{ width: '100%', marginTop: 12 }} onClick={() => void onContinueAfterFeedback()}>
-              {currentIndex >= total - 1 ? 'Voir le score' : 'Suivant'}
-            </button>
+    <div className="quiz-play-page">
+      <div className="quiz-play-scroll" style={revealed ? { overflow: 'hidden' } : undefined}>
+        <div className="quiz-play-stage">
+          <QuizPlayNavbar
+            current={currentIndex + 1}
+            total={total}
+            sessionPoints={sessionPoints}
+            maxSessionPoints={maxSessionPoints}
+            timerSeconds={timeLeft}
+            timerMax={secondsPerQuestion}
+            onMenuPress={() => {
+              if (window.confirm('Quitter le quiz ? Ta progression sur cette question sera perdue.')) {
+                reset();
+                navigate(-1);
+              }
+            }}
+          />
+
+          <div className="quiz-play-body">
+            <QuizQuestionHeader imageUri={question.imageUrl} questionText={question.questionText} />
+            <QuizAnswerGrid
+              questionId={question.id}
+              options={question.options}
+              selectedId={selectedOptionId}
+              correctId={question.correctOptionId}
+              revealed={revealed}
+              onSelect={onPick}
+            />
           </div>
         </div>
+      </div>
+
+      {feedbackPhase !== 'idle' ? (
+        <QuizFeedbackFunFactModal
+          visible={revealed}
+          phase={feedbackPhase}
+          pointsEarnedLabel={
+            feedbackPhase === 'correct'
+              ? `+${lastPointsEarned} point${lastPointsEarned > 1 ? 's' : ''}`
+              : ''
+          }
+          funFact={question.explanation?.trim() ?? ''}
+          correctAnswerLabel={
+            feedbackPhase === 'incorrect' || feedbackPhase === 'timeout' ? correctAnswerLabel : undefined
+          }
+          continueLabel={currentIndex >= total - 1 ? 'Voir le score' : 'Continuer'}
+          onContinue={() => void onContinueAfterFeedback()}
+        />
       ) : null}
     </div>
   );

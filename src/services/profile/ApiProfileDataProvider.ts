@@ -87,6 +87,7 @@ function mapProfilePayload(data: ApiProfilePayload, userId?: string): ProfileScr
     quizTotalCount: stats?.quiz_count ?? 0,
     quizzes: quizzes.map((q, index) => ({
       id: q.id || `${q.quiz_id ?? 'quiz'}-${index}`,
+      quizId: q.quiz_id || q.id || '',
       title: q.title?.trim() || 'Quiz',
       thumbnailUri:
         q.thumbnail_url?.trim() ||

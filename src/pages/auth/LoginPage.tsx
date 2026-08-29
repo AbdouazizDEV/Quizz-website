@@ -1,13 +1,16 @@
 import { useCallback, useState, type FormEvent } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
+import { AuthShell } from '@components/ui/auth/AuthShell';
+import { UnderlineLabeledField } from '@components/ui/auth/UnderlineLabeledField';
+import { Icon } from '@components/ui/Icon';
+import { WalkthroughActionButton } from '@components/ui/walkthrough/WalkthroughActionButton';
 import { AUTH_FORM_PLACEHOLDERS } from '@constants/authFormPlaceholders';
 import { Routes } from '@constants/Routes';
 import { persistPasskeyAuthResult, signOutAndSyncStore } from '@services/auth/authSessionController';
-import { mapLoginUserToAuthMe } from '@services/auth/mapLoginToAuthMe';
 import { getAuthMeFromStore } from '@services/auth/authMeRepository';
+import { mapLoginUserToAuthMe } from '@services/auth/mapLoginToAuthMe';
 import { loginGateway } from '@services/auth/loginGatewayInstance';
 import { toFrenchPasskeyError } from '@services/auth/passkeyAuthService';
-import { Icon } from '@components/ui/Icon';
 
 export function LoginPage() {
   const navigate = useNavigate();
@@ -15,6 +18,7 @@ export function LoginPage() {
   const [submitting, setSubmitting] = useState(false);
   const [discoverableSubmitting, setDiscoverableSubmitting] = useState(false);
   const [formError, setFormError] = useState<string | null>(null);
+  const busy = submitting || discoverableSubmitting;
 
   const finishLogin = useCallback(
     async (result: Awaited<ReturnType<typeof loginGateway.signIn>>) => {
@@ -32,9 +36,9 @@ export function LoginPage() {
     [navigate],
   );
 
-  const onSubmit = async (event: FormEvent) => {
-    event.preventDefault();
-    if (submitting || discoverableSubmitting) return;
+  const onSubmit = async (event?: FormEvent) => {
+    event?.preventDefault();
+    if (busy) return;
     const trimmed = identifier.trim();
     if (!trimmed) {
       setFormError('Saisissez votre e-mail ou nom d’utilisateur.');
@@ -52,7 +56,7 @@ export function LoginPage() {
   };
 
   const onDiscoverable = async () => {
-    if (submitting || discoverableSubmitting) return;
+    if (busy) return;
     setFormError(null);
     setDiscoverableSubmitting(true);
     try {
@@ -65,35 +69,61 @@ export function LoginPage() {
   };
 
   return (
-    <div className="auth-page">
-      <div className="auth-inner">
-        <Link to={Routes.WALKTHROUGH} aria-label="Retour" style={{ display: 'inline-flex', marginBottom: 24 }}>
-          <Icon name="chevron-left" size={24} />
-        </Link>
-        <h1 style={{ fontSize: 34, margin: '0 0 8px' }}>Bon retour !</h1>
-        <p className="muted">Connecte-toi avec ta passkey — sans mot de passe.</p>
-        <form onSubmit={onSubmit} style={{ display: 'grid', gap: 28, marginTop: 36 }}>
-          <label className="field">
-            <span>E-mail ou nom d’utilisateur</span>
-            <input
-              autoComplete="username webauthn"
-              value={identifier}
-              onChange={(e) => setIdentifier(e.target.value)}
-              placeholder={AUTH_FORM_PLACEHOLDERS.email}
+    <AuthShell
+      variant="login"
+      artSrc="/assets/icons/image2.png"
+      headline="Bon retour parmi nous"
+      subline="Connecte-toi avec Face ID, empreinte ou une passkey déjà enregistrée."
+      footer={
+        <footer className="auth-footer auth-footer--continue auth-footer--login">
+          <div className="auth-footer-inner">
+            {busy ? (
+              <div className="auth-loader-row">
+                <div className="auth-loader" aria-hidden />
+              </div>
+            ) : null}
+            <WalkthroughActionButton
+              label="SE CONNECTER AVEC PASSKEY"
+              variant="primary"
+              onClick={() => void onSubmit()}
+              disabled={busy}
             />
-          </label>
-          {formError ? <p className="error-text">{formError}</p> : null}
-          <button type="submit" className="btn btn-primary" disabled={submitting}>
-            {submitting ? 'Connexion…' : 'Continuer avec une passkey'}
-          </button>
-          <button type="button" className="btn btn-outline" onClick={() => void onDiscoverable()} disabled={discoverableSubmitting}>
-            {discoverableSubmitting ? 'Passkey…' : 'Utiliser une passkey enregistrée'}
-          </button>
-        </form>
-        <p className="muted" style={{ marginTop: 28, textAlign: 'center' }}>
-          Pas encore de compte ? <Link to={Routes.CREATE_ACCOUNT_TYPE} style={{ color: '#E8431A', fontWeight: 800 }}>S’inscrire</Link>
+          </div>
+        </footer>
+      }
+    >
+      <button
+        type="button"
+        className="auth-back"
+        aria-label="Retour"
+        onClick={() => navigate(Routes.CREATE_ACCOUNT_TYPE, { replace: true })}
+      >
+        <Icon name="arrow-left" size={22} color="#212121" />
+      </button>
+      <div className="auth-text-block auth-text-block--login">
+        <h1 className="auth-title login-title">Bonjour 👋</h1>
+        <p className="auth-subtitle auth-subtitle--login">
+          Connectez-vous avec Face ID ou empreinte digitale.
         </p>
       </div>
-    </div>
+      <form className="auth-form auth-form--login" onSubmit={(e) => void onSubmit(e)}>
+        {formError ? <p className="auth-error">{formError}</p> : null}
+        <UnderlineLabeledField
+          label="E-mail ou pseudo"
+          value={identifier}
+          onChangeText={setIdentifier}
+          placeholder={AUTH_FORM_PLACEHOLDERS.email}
+          autoComplete="username webauthn"
+        />
+        <button
+          type="button"
+          className="auth-discoverable"
+          onClick={() => void onDiscoverable()}
+          disabled={busy}
+        >
+          Utiliser un passkey enregistré sur cet appareil
+        </button>
+      </form>
+    </AuthShell>
   );
 }

@@ -1,159 +1,200 @@
-import { Link, useNavigate, useParams } from 'react-router-dom';
+import { useCallback, useMemo, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
+
+import { DefisNavbar } from '@components/ui/defis/DefisNavbar';
+import { DefisStateViews } from '@components/ui/defis/DefisStateViews';
+import { DuelIncomingModal } from '@components/ui/defis/DuelIncomingModal';
+import { DuelListCard } from '@components/ui/defis/DuelListCard';
+import { DuelSentModal } from '@components/ui/defis/DuelSentModal';
 import { DefisRoutes } from '@constants/defisRoutes';
-import { buildQuizEntryHref } from '@constants/Routes';
 import { useAuthMe } from '@hooks/useAuthMe';
-import { useDuelQuery } from '@hooks/defis/useDuelQuery';
-import {
-  createFriendDuel,
-  fetchPendingDuelsForUser,
-  fetchRecentDuelsForUser,
-  respondToDuel,
-} from '@services/defis/duelRepository';
-import { fetchFriendsForDuelPaginated } from '@services/defis/duelFriendsSearch';
+import { useAppError } from '@providers/AppErrorProvider';
+import { createFriendDuel, fetchPendingDuelsForUser, fetchRecentDuelsForUser, respondToDuel } from '@services/defis/duelRepository';
+import { searchFriendsForDuel } from '@services/defis/duelFriendsSearch';
 import { openDuelFromList } from '@utils/defis/openDuelFromList';
-import { Icon } from '@components/ui/Icon';
+import { getUserAvatarUri } from '@utils/getUserAvatarUri';
 
 export function DuelHubPage() {
-  return (
-    <div style={{ display: 'grid', gap: 12 }}>
-      <h1>Duels</h1>
-      <Link to={DefisRoutes.duelFriendsList} className="card" style={{ padding: 16, display: 'block' }}>Défier un ami</Link>
-      <Link to={DefisRoutes.duelPendingList} className="card" style={{ padding: 16, display: 'block' }}>En attente</Link>
-      <Link to={DefisRoutes.duelRecentList} className="card" style={{ padding: 16, display: 'block' }}>Récents</Link>
-    </div>
-  );
-}
-
-export function DuelFriendsPage() {
-  const { data: me } = useAuthMe();
-  const navigate = useNavigate();
-  const { data, isLoading } = useQuery({
-    queryKey: ['duel-friends'],
-    queryFn: () => fetchFriendsForDuelPaginated('', 1, 30),
-    enabled: Boolean(me?.user?.id),
-  });
-
-  return (
-    <div>
-      <h1>Défier un ami</h1>
-      {isLoading ? <p>Chargement…</p> : null}
-      {(data?.items ?? []).map((friend) => (
-        <button
-          key={friend.id}
-          type="button"
-          className="card"
-          style={{ padding: 14, width: '100%', textAlign: 'left', marginBottom: 8, background: '#fff' }}
-          onClick={async () => {
-            const result = await createFriendDuel(me?.user?.id ?? '', friend.id);
-            if (result.data?.id) navigate(DefisRoutes.duelDetail(result.data.id));
-          }}
-        >
-          {friend.displayName}
-        </button>
-      ))}
-    </div>
-  );
-}
-
-export function DuelPendingPage() {
-  const { data: me } = useAuthMe();
   const navigate = useNavigate();
   const queryClient = useQueryClient();
-  const { data, isLoading } = useQuery({
-    queryKey: ['duels-pending-list'],
-    queryFn: () => fetchPendingDuelsForUser(me!.user.id, { page: 1, limit: 30 }),
-    enabled: Boolean(me?.user?.id),
+  const { data: me } = useAuthMe();
+  const userId = me?.user?.id ?? '';
+  const { showAppError } = useAppError();
+  const [query, setQuery] = useState('');
+  const [sentName, setSentName] = useState<string | null>(null);
+  const [incomingId, setIncomingId] = useState<string | null>(null);
+  const [busy, setBusy] = useState(false);
+
+  const pendingQuery = useQuery({
+    queryKey: ['duels-pending', userId],
+    queryFn: () => fetchPendingDuelsForUser(userId, { page: 1, limit: 5 }),
+    enabled: Boolean(userId),
+  });
+  const recentQuery = useQuery({
+    queryKey: ['duels-recent', userId],
+    queryFn: () => fetchRecentDuelsForUser(userId, { page: 1, limit: 5 }),
+    enabled: Boolean(userId),
+  });
+  const friendsQuery = useQuery({
+    queryKey: ['duel-friends-hub', query],
+    queryFn: () => searchFriendsForDuel(query, 8),
+    enabled: Boolean(userId),
   });
 
-  return (
-    <div>
-      <h1>Duels en attente</h1>
-      {isLoading ? <p>Chargement…</p> : null}
-      {(data?.items ?? []).map((duel) => (
-        <button
-          key={duel.id}
-          type="button"
-          className="card"
-          style={{ padding: 14, width: '100%', textAlign: 'left', marginBottom: 8, background: '#fff' }}
-          onClick={() => openDuelFromList(navigate, queryClient, duel)}
-        >
-          {duel.challengerName} vs {duel.challengedName}
-        </button>
-      ))}
-    </div>
+  const incoming = useMemo(
+    () => pendingQuery.data?.items.find((d) => d.phase === 'needs_your_acceptance') ?? null,
+    [pendingQuery.data],
   );
-}
 
-export function DuelRecentPage() {
-  const { data: me } = useAuthMe();
-  const navigate = useNavigate();
-  const queryClient = useQueryClient();
-  const { data, isLoading } = useQuery({
-    queryKey: ['duels-recent-list'],
-    queryFn: () => fetchRecentDuelsForUser(me!.user.id, { page: 1, limit: 30 }),
-    enabled: Boolean(me?.user?.id),
-  });
+  const onBack = useCallback(() => navigate(DefisRoutes.hub), [navigate]);
 
-  return (
-    <div>
-      <h1>Duels récents</h1>
-      {isLoading ? <p>Chargement…</p> : null}
-      {(data?.items ?? []).map((duel) => (
-        <button
-          key={duel.id}
-          type="button"
-          className="card"
-          style={{ padding: 14, width: '100%', textAlign: 'left', marginBottom: 8, background: '#fff' }}
-          onClick={() => openDuelFromList(navigate, queryClient, duel)}
-        >
-          {duel.challengerName} vs {duel.challengedName} · {duel.status}
-        </button>
-      ))}
-    </div>
-  );
-}
+  const challengeFriend = async (friendId: string, name: string) => {
+    try {
+      const result = await createFriendDuel(userId, friendId);
+      if (result.queued) {
+        setSentName(name);
+        return;
+      }
+      if (result.data?.id) {
+        setSentName(name);
+        await queryClient.invalidateQueries({ queryKey: ['duels-pending'] });
+      }
+    } catch (error) {
+      showAppError(error instanceof Error ? error.message : 'Impossible de créer le duel.', {
+        title: 'Duel',
+      });
+    }
+  };
 
-export function DuelDetailPage() {
-  const { id } = useParams();
-  const navigate = useNavigate();
-  const { data, isLoading, error } = useDuelQuery(id ?? '');
-  const { data: me } = useAuthMe();
-
-  if (isLoading) return <p>Chargement…</p>;
-  if (error || !data) return <p className="error-text">Duel introuvable.</p>;
+  const incomingDuel = incomingId
+    ? pendingQuery.data?.items.find((d) => d.id === incomingId) ?? incoming
+    : incoming;
 
   return (
-    <div>
-      <h1>Duel</h1>
-      <p>{data.challengerName} vs {data.challengedName}</p>
-      <p className="muted">Statut : {data.status} · phase {data.phase}</p>
-      {data.phase === 'needs_your_acceptance' ? (
-        <div style={{ display: 'flex', gap: 8 }}>
-          <button type="button" className="btn btn-primary" onClick={() => void respondToDuel(data.id, me?.user?.id ?? '', true)}>Accepter</button>
-          <button type="button" className="btn btn-ghost" onClick={() => void respondToDuel(data.id, me?.user?.id ?? '', false)}>Refuser</button>
+    <div className="defis-page">
+      <DefisNavbar title="Duel" onBack={onBack} />
+
+      <section>
+        <div className="defis-section-head">
+          <h2>Duels en attente</h2>
+          <button type="button" className="defis-link" onClick={() => navigate(DefisRoutes.duelPendingList)}>
+            Voir tout
+          </button>
         </div>
-      ) : null}
-      {data.phase === 'your_turn' ? (
-        <button type="button" className="btn btn-primary" onClick={() => navigate(buildQuizEntryHref(data.quizId, { duelId: data.id }))}>
-          Jouer
-        </button>
-      ) : null}
-      {me ? <p className="muted">Toi : {me.profile?.username}</p> : null}
-    </div>
-  );
-}
+        {pendingQuery.isLoading ? <DefisStateViews loading /> : null}
+        {pendingQuery.error ? (
+          <DefisStateViews
+            error={pendingQuery.error instanceof Error ? pendingQuery.error : 'Impossible de charger les duels.'}
+            onRetry={() => void pendingQuery.refetch()}
+          />
+        ) : null}
+        <div className="defis-cards">
+          {(pendingQuery.data?.items ?? []).slice(0, 3).map((duel) => (
+            <DuelListCard
+              key={duel.id}
+              duel={duel}
+              userId={userId}
+              onPress={() => {
+                if (duel.phase === 'needs_your_acceptance') setIncomingId(duel.id);
+                else openDuelFromList(navigate, queryClient, duel);
+              }}
+            />
+          ))}
+        </div>
+        {!pendingQuery.isLoading && (pendingQuery.data?.items.length ?? 0) === 0 ? (
+          <p className="defis-muted">Aucun duel en attente.</p>
+        ) : null}
+      </section>
 
-export function DuelResultPage() {
-  const { id } = useParams();
-  const { data } = useDuelQuery(id ?? '');
-  return (
-    <div>
-      <h1>Résultat du duel</h1>
-      <p>{data?.challengerName} {data?.challengerScore ?? '—'} — {data?.challengedScore ?? '—'} {data?.challengedName}</p>
-      <Link to={DefisRoutes.duelHub} className="btn btn-ghost" style={{ display: 'inline-flex', marginTop: 16 }}>
-        <Icon name="chevron-left" /> Retour
-      </Link>
+      <section>
+        <div className="defis-section-head">
+          <h2>Mes duels récents</h2>
+          <button type="button" className="defis-link" onClick={() => navigate(DefisRoutes.duelRecentList)}>
+            Voir tout
+          </button>
+        </div>
+        <div className="defis-cards">
+          {(recentQuery.data?.items ?? []).slice(0, 3).map((duel) => (
+            <DuelListCard
+              key={duel.id}
+              duel={duel}
+              userId={userId}
+              onPress={() => openDuelFromList(navigate, queryClient, duel)}
+            />
+          ))}
+        </div>
+      </section>
+
+      <section>
+        <div className="defis-section-head">
+          <h2>Défier un ami</h2>
+          <button type="button" className="defis-link" onClick={() => navigate(DefisRoutes.duelFriendsList)}>
+            Voir tout
+          </button>
+        </div>
+        <input
+          className="defis-search"
+          placeholder="Rechercher un ami"
+          value={query}
+          onChange={(event) => setQuery(event.target.value)}
+        />
+        <div className="defis-cards" style={{ marginTop: 12 }}>
+          {(friendsQuery.data ?? []).map((friend) => (
+            <button
+              key={friend.id}
+              type="button"
+              className="defis-card"
+              onClick={() => void challengeFriend(friend.id, friend.displayName)}
+            >
+              <div style={{ display: 'flex', gap: 12, alignItems: 'center' }}>
+                <span className="defis-avatar" style={{ width: 44, height: 44, margin: 0 }}>
+                  <img src={getUserAvatarUri(friend.id, friend.avatarUri)} alt="" />
+                </span>
+                <span>
+                  <strong>{friend.displayName}</strong>
+                  <p className="defis-muted">{friend.handle}</p>
+                </span>
+              </div>
+            </button>
+          ))}
+        </div>
+      </section>
+
+      <DuelSentModal open={Boolean(sentName)} opponentName={sentName ?? ''} onClose={() => setSentName(null)} />
+      <DuelIncomingModal
+        open={Boolean(incomingId && incomingDuel)}
+        challengerName={incomingDuel?.challengerName ?? ''}
+        busy={busy}
+        onClose={() => setIncomingId(null)}
+        onAccept={async () => {
+          if (!incomingDuel) return;
+          setBusy(true);
+          try {
+            const result = await respondToDuel(incomingDuel.id, userId, true);
+            await queryClient.invalidateQueries({ queryKey: ['duels-pending'] });
+            setIncomingId(null);
+            if (result.data?.quizId) navigate(DefisRoutes.duelDetail(incomingDuel.id));
+          } catch (error) {
+            showAppError(error instanceof Error ? error.message : "Impossible d'accepter.", { title: 'Duel' });
+          } finally {
+            setBusy(false);
+          }
+        }}
+        onDecline={async () => {
+          if (!incomingDuel) return;
+          setBusy(true);
+          try {
+            await respondToDuel(incomingDuel.id, userId, false);
+            await queryClient.invalidateQueries({ queryKey: ['duels-pending'] });
+            setIncomingId(null);
+          } catch (error) {
+            showAppError(error instanceof Error ? error.message : 'Impossible de refuser.', { title: 'Duel' });
+          } finally {
+            setBusy(false);
+          }
+        }}
+      />
     </div>
   );
 }

@@ -1,6 +1,6 @@
 import { apiClient } from '@services/api/apiClient';
 import type { PaginatedResponse } from '@app-types/pagination.types';
-import { useAuthStore } from '@stores/authStore';
+import { authHeaders } from '@services/defis/nestDefisHelpers';
 import { getUserAvatarUri } from '@utils/getUserAvatarUri';
 
 export interface DuelFriendResult {
@@ -38,13 +38,7 @@ export async function fetchFriendsForDuelPaginated(
   page = 1,
   limit = 20,
 ): Promise<PaginatedResponse<DuelFriendResult>> {
-  const token = useAuthStore.getState().token?.trim();
-  if (!token) {
-    throw new Error('Utilisateur non connecté.');
-  }
-
   const q = query.trim();
-
   const { data } = await apiClient.get<ApiConnectionsResponse>('/network/users', {
     params: {
       filter: 'friends',
@@ -52,7 +46,7 @@ export async function fetchFriendsForDuelPaginated(
       page,
       limit,
     },
-    headers: { Authorization: `Bearer ${token}` },
+    headers: authHeaders(),
   });
 
   const items = data.items?.map(mapFriend) ?? [];

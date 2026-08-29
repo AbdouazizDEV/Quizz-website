@@ -2,7 +2,6 @@ import { Link, useSearchParams } from 'react-router-dom';
 import { QRCodeSVG } from 'qrcode.react';
 import { useAuthMe } from '@hooks/useAuthMe';
 import { useConnectionsScreenData } from '@hooks/useConnectionsScreenData';
-import { useGlobalLeaderboard } from '@hooks/useGlobalLeaderboard';
 import { Routes } from '@constants/Routes';
 import { AppConfig } from '@config';
 import { encodeFriendInviteWebLink } from '@utils/friendQrPayload';
@@ -43,21 +42,6 @@ export function NetworkPage() {
         <Link key={u.id} to={`/users/${u.id}`} className="card" style={{ padding: 12, marginBottom: 8, display: 'flex', justifyContent: 'space-between' }}>
           <span>{u.displayName}</span>
           <span className="muted">{u.handle}</span>
-        </Link>
-      ))}
-    </div>
-  );
-}
-
-export function PlayersPage() {
-  const { items, loading } = useGlobalLeaderboard(40);
-  return (
-    <div>
-      <h1>Joueurs</h1>
-      {loading ? <p>Chargement…</p> : null}
-      {items.map((p) => (
-        <Link key={p.id} to={`/users/${p.id}`} className="card" style={{ padding: 12, marginBottom: 8, display: 'block' }}>
-          #{p.rank} {p.displayName}
         </Link>
       ))}
     </div>

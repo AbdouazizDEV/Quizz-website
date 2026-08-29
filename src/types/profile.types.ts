@@ -22,6 +22,7 @@ export interface ProfileStatItem {
 
 export interface ProfileQuizListItem {
   id: string;
+  quizId: string;
   title: string;
   thumbnailUri: string;
   questionCount: number;

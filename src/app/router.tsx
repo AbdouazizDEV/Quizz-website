@@ -38,7 +38,6 @@ import { UserProfilePage } from '@pages/profile/UserProfilePage';
 import { StatisticsPage } from '@pages/profile/StatisticsPage';
 import { ScoreboardPage } from '@pages/profile/ScoreboardPage';
 import { NetworkPage } from '@pages/network/NetworkPage';
-import { PlayersPage } from '@pages/network/PlayersPage';
 import { FriendInvitePage } from '@pages/network/FriendInvitePage';
 import { FriendScanPage } from '@pages/network/FriendScanPage';
 import { SettingsPage } from '@pages/settings/SettingsPage';
@@ -76,17 +75,20 @@ export function AppRoutes() {
           <Route path="/categories/:slug" element={<CategoryDetailPage />} />
           <Route path="/defis" element={<DefisHubPage />} />
           <Route path="/defis/challenge" element={<ChallengeListPage />} />
-          <Route path="/defis/challenge/:id" element={<ChallengeDetailPage />} />
+          <Route path="/defis/challenge/:id/classement" element={<ChallengeLeaderboardPage />} />
           <Route path="/defis/challenge/classement/:id" element={<ChallengeLeaderboardPage />} />
+          <Route path="/defis/challenge/:id" element={<ChallengeDetailPage />} />
           <Route path="/defis/duel" element={<DuelHubPage />} />
           <Route path="/defis/duel/amis" element={<DuelFriendsPage />} />
           <Route path="/defis/duel/en-attente" element={<DuelPendingPage />} />
           <Route path="/defis/duel/recents" element={<DuelRecentPage />} />
-          <Route path="/defis/duel/:id" element={<DuelDetailPage />} />
+          <Route path="/defis/duel/:id/resultat" element={<DuelResultPage />} />
           <Route path="/defis/duel/resultat/:id" element={<DuelResultPage />} />
+          <Route path="/defis/duel/:id" element={<DuelDetailPage />} />
           <Route path="/defis/tournoi" element={<TournoiListPage />} />
-          <Route path="/defis/tournoi/:id" element={<TournoiDetailPage />} />
+          <Route path="/defis/tournoi/:id/bracket" element={<TournoiBracketPage />} />
           <Route path="/defis/tournoi/bracket/:id" element={<TournoiBracketPage />} />
+          <Route path="/defis/tournoi/:id" element={<TournoiDetailPage />} />
           <Route path="/gains" element={<GainsHubPage />} />
           <Route path="/gains/comment-gagner" element={<GainsHowPage />} />
           <Route path="/gains/prix" element={<GainsPrizesPage />} />
@@ -96,8 +98,8 @@ export function AppRoutes() {
           <Route path="/users/:userId" element={<UserProfilePage />} />
           <Route path="/statistics" element={<StatisticsPage />} />
           <Route path="/scoreboard" element={<ScoreboardPage />} />
+          <Route path="/players" element={<ScoreboardPage />} />
           <Route path="/network" element={<NetworkPage />} />
-          <Route path="/players" element={<PlayersPage />} />
           <Route path="/friend" element={<FriendInvitePage />} />
           <Route path="/friend-scan" element={<FriendScanPage />} />
           <Route path="/settings" element={<SettingsPage />} />

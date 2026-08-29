@@ -1,57 +1,66 @@
 import { useState } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
+import { AuthShell } from '@components/ui/auth/AuthShell';
+import {
+  AccountTypeOption,
+  AccountTypeOptionCard,
+} from '@components/ui/onboarding/AccountTypeOptionCard';
+import { OnboardingNavbar } from '@components/ui/onboarding/OnboardingNavbar';
+import { OnboardingSkipBar } from '@components/ui/onboarding/OnboardingSkipBar';
 import { Routes } from '@constants/Routes';
 import { useOnboardingRegisterStore } from '@stores/onboardingRegisterStore';
-import { Icon } from '@components/ui/Icon';
 
-const OPTIONS = [
-  { id: 'school', label: 'École', icon: 'file-text', color: '#FFB703' },
-  { id: 'higher-education', label: 'Enseignement supérieur', icon: 'check-square', color: '#FB8500' },
-  { id: 'teams', label: 'Équipes', icon: 'users', color: '#00B894' },
-  { id: 'company', label: 'Entreprise', icon: 'briefcase', color: '#FF6B6B' },
+const WORKPLACE_OPTIONS: AccountTypeOption[] = [
+  { id: 'school', label: 'École', gradientStart: '#FFB703', icon: 'file-text' },
+  {
+    id: 'higher-education',
+    label: 'Enseignement\nsupérieur',
+    gradientStart: '#FB8500',
+    icon: 'check-square',
+  },
+  { id: 'teams', label: 'Équipes', gradientStart: '#00B894', icon: 'users' },
+  { id: 'enterprise', label: 'Entreprise', gradientStart: '#FF6B6B', icon: 'briefcase' },
 ];
 
 export function CreateAccountWorkplacePage() {
   const navigate = useNavigate();
+  const [selectedId, setSelectedId] = useState<string | null>(null);
   const setWorkplaceId = useOnboardingRegisterStore((s) => s.setWorkplaceId);
-  const [selected, setSelected] = useState<string | null>(null);
+
+  const handleSelect = (id: string) => {
+    setSelectedId(id);
+    setWorkplaceId(id);
+    navigate(Routes.CREATE_ACCOUNT_PROFILE);
+  };
 
   return (
-    <div className="auth-page">
-      <div className="auth-inner">
-        <Link to={Routes.CREATE_ACCOUNT_TYPE}><Icon name="chevron-left" /></Link>
-        <div style={{ height: 8, background: '#F0F0F0', borderRadius: 99, margin: '20px 0' }}>
-          <div style={{ width: '66%', height: '100%', background: '#F5A623', borderRadius: 99 }} />
+    <AuthShell
+      artSrc="/assets/icons/image2.png"
+      headline="Ton univers de jeu"
+      subline="École, campus, équipe ou entreprise : on adapte l’expérience autour de toi."
+      footer={<OnboardingSkipBar onSkip={() => navigate(Routes.WALKTHROUGH, { replace: true })} />}
+    >
+      <OnboardingNavbar progress={2 / 3} onBack={() => navigate(Routes.CREATE_ACCOUNT_TYPE)} />
+      <div className="auth-scroll">
+        <div className="auth-text-block">
+          <h1 className="auth-title workplace-title">
+            Décrivez un lieu de
+            <br />
+            travail qui vous convient
+          </h1>
+          <p className="auth-subtitle auth-subtitle--onb">Vous pouvez l&apos;ignorer si vous n&apos;êtes pas sûr.</p>
         </div>
-        <h1>Où joues-tu ?</h1>
-        <div style={{ display: 'grid', gap: 12, marginTop: 24 }}>
-          {OPTIONS.map((opt) => (
-            <button
-              key={opt.id}
-              type="button"
-              className="card"
-              style={{
-                display: 'flex',
-                alignItems: 'center',
-                gap: 14,
-                padding: 16,
-                border: selected === opt.id ? '2px solid #E8431A' : '1px solid var(--border)',
-                background: '#fff',
-              }}
-              onClick={() => {
-                setSelected(opt.id);
-                setWorkplaceId(opt.id);
-                navigate(Routes.CREATE_ACCOUNT_PROFILE);
-              }}
-            >
-              <span style={{ width: 44, height: 44, borderRadius: 14, background: opt.color, display: 'grid', placeItems: 'center', color: '#fff' }}>
-                <Icon name={opt.icon} />
-              </span>
-              <strong>{opt.label}</strong>
-            </button>
+        <div className="auth-options">
+          {WORKPLACE_OPTIONS.map((option) => (
+            <AccountTypeOptionCard
+              key={option.id}
+              option={option}
+              selected={selectedId === option.id}
+              onPress={handleSelect}
+            />
           ))}
         </div>
       </div>
-    </div>
+    </AuthShell>
   );
 }

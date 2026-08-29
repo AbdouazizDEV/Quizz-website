@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useState } from 'react';
 
 import type { GainsHubData } from '@app-types/gains.types';
-import { useAuthMe } from '@hooks/useAuthMe';
+import { loadAuthMe } from '@services/auth/authMeRepository';
 import { fetchGlobalLeaderboard } from '@services/leaderboard/fetchGlobalLeaderboard';
 import { mapToGainsHubData } from '@services/gains/mapToGainsHubData';
 import { useAuthStore } from '@stores/authStore';
@@ -15,7 +15,6 @@ interface Result {
 
 export function useGainsHubData(): Result {
   const token = useAuthStore((s) => s.token);
-  const { data: me } = useAuthMe();
   const [data, setData] = useState<GainsHubData | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<Error | null>(null);
@@ -24,11 +23,10 @@ export function useGainsHubData(): Result {
     setLoading(true);
     setError(null);
     try {
+      const me = await loadAuthMe({ force: true });
       const board = await fetchGlobalLeaderboard(10, token);
       const myRank =
-        board.me?.rank ??
-        board.items.find((i) => i.id === me?.user?.id)?.rank ??
-        null;
+        board.me?.rank ?? board.items.find((item) => item.id === me?.user?.id)?.rank ?? null;
       setData(
         mapToGainsHubData({
           me,
@@ -37,18 +35,12 @@ export function useGainsHubData(): Result {
         }),
       );
     } catch (e) {
-      setError(e instanceof Error ? e : new Error(String(e)));
-      setData(
-        mapToGainsHubData({
-          me,
-          leaderboard: [],
-          myRank: null,
-        }),
-      );
+      setData(null);
+      setError(e instanceof Error ? e : new Error('Impossible de charger tes gains.'));
     } finally {
       setLoading(false);
     }
-  }, [me, token]);
+  }, [token]);
 
   useEffect(() => {
     void load();

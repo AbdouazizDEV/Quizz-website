@@ -2,34 +2,34 @@ import { buildCacheKey } from './cacheKey';
 
 export function activeWeeklyChallengesCacheKey(): string {
   return buildCacheKey({
-    source: 'supabase',
+    source: 'api',
     method: 'GET',
-    path: 'weekly_challenges/active',
+    path: 'defis/challenges/active',
   });
 }
 
 export function pastWeeklyChallengesCacheKey(): string {
   return buildCacheKey({
-    source: 'supabase',
+    source: 'api',
     method: 'GET',
-    path: 'weekly_challenges/past',
+    path: 'defis/challenges/past',
   });
 }
 
 export function challengeProgressCacheKey(challengeId: string, userId: string): string {
   return buildCacheKey({
-    source: 'supabase',
+    source: 'api',
     method: 'GET',
-    path: 'weekly_challenges/progress',
+    path: 'defis/challenges/progress',
     params: { challengeId, userId },
   });
 }
 
 export function challengeLeaderboardCacheKey(challengeId: string, userId: string): string {
   return buildCacheKey({
-    source: 'supabase',
+    source: 'api',
     method: 'GET',
-    path: 'weekly_challenges/leaderboard',
+    path: 'defis/challenges/leaderboard',
     params: { challengeId, userId },
   });
 }

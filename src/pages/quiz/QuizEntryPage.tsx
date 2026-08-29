@@ -6,7 +6,6 @@ import { delay } from '@utils/delay';
 import { buildQuizQuestionSet } from '@domain/quiz/buildQuizQuestionSet';
 import { getQuizPlayRepository } from '@services/quiz/play/quizPlayRepositoryInstance';
 import { useQuizPlaySessionStore } from '@stores/quizPlaySessionStore';
-import { QuizPlayTheme } from '@constants/quizPlayTheme';
 
 const LOADER_MS = 1200;
 
@@ -73,31 +72,29 @@ export function QuizEntryPage() {
   }, [quizId, startPlay]);
 
   return (
-    <div
-      style={{
-        minHeight: '100svh',
-        display: 'grid',
-        placeItems: 'center',
-        background: QuizPlayTheme.loaderBg,
-        color: '#1F2261',
-        padding: 24,
-      }}
-    >
-      <div style={{ width: 'min(100%, 360px)', textAlign: 'center' }}>
+    <div className="quiz-entry-page">
+      <div className="quiz-entry-card">
         <img src="/assets/icons/logo.png" alt="Quizz+" width={72} height={72} style={{ margin: '0 auto 16px' }} />
-        <h1>Préparation du quiz</h1>
-        <div className="progress-bar" style={{ background: QuizPlayTheme.loaderTrack }}>
-          <span style={{ width: `${Math.round(progress * 100)}%`, background: QuizPlayTheme.loaderFill }} />
+        <h1 style={{ margin: '0 0 16px' }}>Préparation du quiz</h1>
+        <div className="progress-bar" style={{ background: '#FFFFFF' }}>
+          <span style={{ width: `${Math.round(progress * 100)}%`, background: '#1F2261' }} />
         </div>
         {error ? (
           <>
-            <p className="error-text" style={{ marginTop: 16 }}>{error}</p>
-            <button type="button" className="btn btn-primary" style={{ marginTop: 12 }} onClick={() => navigate(Routes.CATEGORIES)}>
+            <p className="error-text" style={{ marginTop: 16 }}>
+              {error}
+            </p>
+            <button
+              type="button"
+              className="btn btn-primary"
+              style={{ marginTop: 12 }}
+              onClick={() => navigate(Routes.CATEGORIES)}
+            >
               Retour aux catégories
             </button>
           </>
         ) : (
-          <p style={{ fontWeight: 700 }}>Chargement des questions…</p>
+          <p style={{ fontWeight: 700, marginTop: 16 }}>Chargement des questions…</p>
         )}
       </div>
     </div>

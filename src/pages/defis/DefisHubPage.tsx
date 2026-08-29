@@ -1,37 +1,79 @@
-import { Link } from 'react-router-dom';
-import { useQuery } from '@tanstack/react-query';
+import { useCallback } from 'react';
+import { useNavigate } from 'react-router-dom';
+
+import { DefisActionTiles } from '@components/ui/defis/DefisActionTiles';
+import { DefisFeaturedChallengeCard } from '@components/ui/defis/DefisFeaturedChallengeCard';
+import { DefisNavbar } from '@components/ui/defis/DefisNavbar';
+import { DefisQuickStatsSection } from '@components/ui/defis/DefisQuickStatsSection';
+import { DefisStateViews } from '@components/ui/defis/DefisStateViews';
+import { DefisSummaryCard } from '@components/ui/defis/DefisSummaryCard';
 import { DefisRoutes } from '@constants/defisRoutes';
-import { DEFIS_DUEL_SECTION, DEFIS_MONTHLY_TOURNAMENT, DEFIS_WEEKLY_CHALLENGE } from '@constants/defisContent';
 import { Routes } from '@constants/Routes';
+import type { HomeActionTileId } from '@constants/homeActionTiles';
 import { useAuthMe } from '@hooks/useAuthMe';
 import { useDefisDashboard } from '@hooks/defis/useDefisDashboard';
-import { Icon } from '@components/ui/Icon';
+import { buildDefisSummaryItems } from '@utils/defis/buildDefisSummaryItems';
 
 export function DefisHubPage() {
+  const navigate = useNavigate();
   const { data: me } = useAuthMe();
-  const { data } = useDefisDashboard(me?.user?.id);
+  const { data, isLoading, error, refetch } = useDefisDashboard(me?.user?.id);
+
+  const go = useCallback(
+    (id: HomeActionTileId) => {
+      if (id === 'challenge') navigate(DefisRoutes.challengeList);
+      if (id === 'tournament') navigate(DefisRoutes.tournoiList);
+      if (id === 'duel') navigate(DefisRoutes.duelHub);
+    },
+    [navigate],
+  );
+
+  const counts = data ?? {
+    activeChallengeCount: 0,
+    activeTournamentCount: 0,
+    pendingDuelCount: 0,
+    currentWeekChallenge: null,
+    userStats: { defiPlayed: 0, bestRank: null, duelsWon: 0, duelsTotal: 0 },
+  };
 
   return (
-    <div style={{ display: 'grid', gap: 16 }}>
-      <h1>Défis</h1>
-      <Link to={DefisRoutes.challengeList} className="page-hero" style={{ display: 'block' }}>
-        <div style={{ fontSize: 13, fontWeight: 800 }}>{DEFIS_WEEKLY_CHALLENGE.eyebrow}</div>
-        <h2>{data?.currentWeekChallenge?.title ?? DEFIS_WEEKLY_CHALLENGE.title}</h2>
-        <p>{data?.activeChallengeCount ?? 0} challenge(s) actif(s)</p>
-      </Link>
-      <Link to={DefisRoutes.tournoiList} className="card" style={{ padding: 18, display: 'block' }}>
-        <strong>{DEFIS_MONTHLY_TOURNAMENT.eyebrow}</strong>
-        <h2>{DEFIS_MONTHLY_TOURNAMENT.title}</h2>
-        <p className="muted">{data?.activeTournamentCount ?? 0} tournoi(s) en cours</p>
-      </Link>
-      <Link to={DefisRoutes.duelHub} className="card" style={{ padding: 18, display: 'flex', gap: 12, alignItems: 'center' }}>
-        <Icon name="zap" color="#E8431A" />
-        <div>
-          <strong>{DEFIS_DUEL_SECTION.title}</strong>
-          <div className="muted">{data?.pendingDuelCount ?? 0} duel(s) en attente</div>
-        </div>
-      </Link>
-      <Link to={Routes.SCOREBOARD} className="btn btn-ghost">Voir le classement</Link>
+    <div className="defis-page defis-hub">
+      <DefisNavbar title="Défis" onBack={() => navigate(Routes.HOME)} />
+      <p className="defis-hub-intro">Challenge hebdo, tournois et duels — joue, grimpe, gagne.</p>
+      {isLoading && !data ? <DefisStateViews loading /> : null}
+      {error && !data ? (
+        <DefisStateViews error={error instanceof Error ? error : String(error)} onRetry={() => void refetch()} />
+      ) : null}
+      {data || !isLoading ? (
+        <>
+          <DefisSummaryCard items={buildDefisSummaryItems(counts)} onPress={go} />
+          <DefisActionTiles
+            onTilePress={go}
+            pulseIds={{
+              challenge: counts.activeChallengeCount > 0,
+              tournament: counts.activeTournamentCount > 0,
+              duel: counts.pendingDuelCount > 0,
+            }}
+          />
+          <div className="defis-hub-lower">
+            <DefisFeaturedChallengeCard
+              id={counts.currentWeekChallenge?.id}
+              title={counts.currentWeekChallenge?.title}
+              endsAt={counts.currentWeekChallenge?.endsAt}
+              onPress={() => {
+                const id = counts.currentWeekChallenge?.id;
+                if (id) navigate(DefisRoutes.challengeDetail(id));
+              }}
+            />
+            <DefisQuickStatsSection
+              defiPlayed={counts.userStats.defiPlayed}
+              bestRank={counts.userStats.bestRank}
+              duelsWon={counts.userStats.duelsWon}
+              duelsTotal={counts.userStats.duelsTotal}
+            />
+          </div>
+        </>
+      ) : null}
     </div>
   );
 }

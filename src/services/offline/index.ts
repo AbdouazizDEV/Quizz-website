@@ -1,5 +1,5 @@
 export { buildCacheKey } from './cacheKey';
-export { competitionsListCacheKey, competitionDetailCacheKey } from './competitionCacheKeys';
+export { competitionsListCacheKey, competitionDetailCacheKey, competitionBracketCacheKey } from './competitionCacheKeys';
 export {
   activeWeeklyChallengesCacheKey,
   pastWeeklyChallengesCacheKey,
@@ -19,6 +19,8 @@ export {
 export { CHALLENGE_PARTICIPATION_INSERT } from './challengeMutations';
 export {
   quizCompleteApiPath,
+  isQuizCompleteApiPath,
+  parseQuizCompleteResponse,
   type QuizSessionCompleteBody,
   type QuizSessionCompleteResponse,
 } from './quizSessionMutations';

@@ -1,8 +1,10 @@
 import { apiClient } from '@services/api/apiClient';
+import { loadAuthMe, patchAuthMeFromQuizComplete } from '@services/auth/authMeRepository';
 import { getSupabaseClient } from '@services/supabase/supabaseClientSingleton';
 import { ensureSupabaseAuthSession } from '@services/supabase/syncSupabaseAuthSession';
 import { useAuthStore } from '@stores/authStore';
 import { useNetworkStore } from '@stores/networkStore';
+import { isAxiosError } from 'axios';
 
 import { CHALLENGE_PARTICIPATION_INSERT, type ChallengeParticipationMutationBody } from './challengeMutations';
 import {
@@ -12,6 +14,11 @@ import {
 } from './competitionMutations';
 import { fetchNetworkOnline } from './networkStatus';
 import { offlineStore } from './OfflineStore';
+import {
+  isLegacyQuizSessionCompleteUrl,
+  isQuizCompleteApiPath,
+  parseQuizCompleteResponse,
+} from './quizSessionMutations';
 import type { QueuedMutation } from './types';
 
 type SyncCompleteListener = () => void;
@@ -48,6 +55,50 @@ function shouldStopSync(error: unknown): boolean {
     message.includes('non connecté') ||
     message.includes('reconnectez-vous')
   );
+}
+
+/** Erreurs qui ne se résolvent pas en rejouant la file (FK, 4xx métier, Prisma). */
+function isPermanentMutationFailure(error: unknown): boolean {
+  const message = (
+    error instanceof Error ? error.message : String(error ?? '')
+  ).toLowerCase();
+  if (
+    message.includes('foreign key') ||
+    message.includes('constraint') ||
+    message.includes('prisma') ||
+    message.includes('introuvable') ||
+    message.includes('not found')
+  ) {
+    return true;
+  }
+  if (!isAxiosError(error)) return false;
+  const status = error.response?.status;
+  if (status === 400 || status === 404 || status === 409 || status === 422) return true;
+  const body = JSON.stringify(error.response?.data ?? '').toLowerCase();
+  return (
+    body.includes('foreign key') ||
+    body.includes('constraint') ||
+    body.includes('quiz_sessions') ||
+    body.includes('user_quiz_scores')
+  );
+}
+
+function mutationLooksPermanentlyDead(mutation: QueuedMutation): boolean {
+  const err = (mutation.lastError ?? '').toLowerCase();
+  if (
+    err.includes('foreign key') ||
+    err.includes('constraint') ||
+    err.includes('prisma') ||
+    err.includes('user_quiz_scores') ||
+    err.includes('quiz_sessions.create')
+  ) {
+    return true;
+  }
+  // Quiz complete déjà tenté plusieurs fois sans succès → abandonner pour lever la bannière.
+  if (isQuizCompleteApiPath(mutation.url) && mutation.attempts >= 2 && mutation.status === 'failed') {
+    return true;
+  }
+  return false;
 }
 
 function authHeaders(): { Authorization: string } {
@@ -105,14 +156,34 @@ async function executeSupabaseMutation(mutation: QueuedMutation): Promise<void> 
   throw new Error(`Mutation Supabase non supportée: ${mutation.url}`);
 }
 
+async function applyQuizCompleteResponse(raw: unknown): Promise<void> {
+  const parsed = parseQuizCompleteResponse(raw);
+  if (parsed) {
+    await patchAuthMeFromQuizComplete(parsed);
+  }
+  await loadAuthMe({ force: true });
+}
+
 async function executeApiMutation(mutation: QueuedMutation): Promise<void> {
   const headers = authHeaders();
   const body = mutation.bodyJson ? JSON.parse(mutation.bodyJson) : undefined;
   const path = mutation.url;
 
   if (mutation.method === 'POST') {
-    await apiClient.post(path, body ?? {}, { headers });
-    return;
+    try {
+      const { data } = await apiClient.post(path, body ?? {}, { headers });
+      if (isQuizCompleteApiPath(path)) {
+        await applyQuizCompleteResponse(data);
+      }
+      return;
+    } catch (error) {
+      if (isQuizCompleteApiPath(path) && isPermanentMutationFailure(error)) {
+        // Score déjà crédité ailleurs, ou erreur métier irrécupérable → sortir de la file.
+        await loadAuthMe({ force: true });
+        return;
+      }
+      throw error;
+    }
   }
   if (mutation.method === 'PUT') {
     await apiClient.put(path, body ?? {}, { headers });
@@ -144,19 +215,28 @@ async function executeMutation(mutation: QueuedMutation): Promise<void> {
 
 const LEGACY_QUIZ_SESSION_COMPLETE = 'supabase://quiz_sessions/complete';
 
-async function purgeLegacyQuizSessionMutations(): Promise<void> {
+async function purgeStaleOfflineMutations(): Promise<boolean> {
   const pending = await offlineStore.listPendingMutations();
   let purged = false;
   for (const mutation of pending) {
-    if (mutation.source === 'supabase' && mutation.url === LEGACY_QUIZ_SESSION_COMPLETE) {
+    const legacySupabase =
+      mutation.source === 'supabase' &&
+      (mutation.url === LEGACY_QUIZ_SESSION_COMPLETE ||
+        isLegacyQuizSessionCompleteUrl(mutation.url) ||
+        mutation.url === COMPETITION_REGISTER_MUTATION ||
+        mutation.url === COMPETITION_UNREGISTER_MUTATION ||
+        mutation.url === CHALLENGE_PARTICIPATION_INSERT ||
+        mutation.url.includes('competition_registrations') ||
+        mutation.url.includes('challenge_participations'));
+    if (legacySupabase || mutationLooksPermanentlyDead(mutation)) {
       await offlineStore.markMutationDone(mutation.id);
       purged = true;
     }
   }
   if (purged) {
     await offlineStore.purgeDoneMutations();
-    await refreshPendingCount();
   }
+  return purged;
 }
 
 /** Rejoue la file offline FIFO (une mutation à la fois). */
@@ -168,9 +248,18 @@ export async function runOfflineSync(): Promise<void> {
   let syncedAny = false;
 
   try {
-    await purgeLegacyQuizSessionMutations();
+    const purgedStale = await purgeStaleOfflineMutations();
+    if (purgedStale) {
+      await refreshPendingCount();
+      syncedAny = true;
+    }
+
     const pending = await offlineStore.listPendingMutations();
-    if (!pending.length) return;
+    if (!pending.length) {
+      await refreshPendingCount();
+      if (syncedAny) notifySyncComplete();
+      return;
+    }
 
     for (const mutation of pending) {
       await offlineStore.markMutationSyncing(mutation.id);
@@ -180,6 +269,14 @@ export async function runOfflineSync(): Promise<void> {
         syncedAny = true;
       } catch (error) {
         const message = error instanceof Error ? error.message : 'Synchronisation impossible.';
+        if (isPermanentMutationFailure(error)) {
+          await offlineStore.markMutationDone(mutation.id);
+          if (isQuizCompleteApiPath(mutation.url)) {
+            await loadAuthMe({ force: true });
+          }
+          syncedAny = true;
+          continue;
+        }
         await offlineStore.markMutationFailed(mutation.id, message);
         if (shouldStopSync(error)) break;
       }
@@ -194,6 +291,6 @@ export async function runOfflineSync(): Promise<void> {
 }
 
 export async function updateOfflinePendingCount(): Promise<void> {
-  await purgeLegacyQuizSessionMutations();
+  await purgeStaleOfflineMutations();
   await refreshPendingCount();
 }

@@ -1,31 +1,86 @@
-import { Link, useNavigate } from 'react-router-dom';
+import { useCallback } from 'react';
+import { useNavigate } from 'react-router-dom';
+
+import { CategoryExploreGridCard } from '@components/ui/categories/CategoryExploreGridCard';
+import { StatisticsNavbar } from '@components/ui/statistics/StatisticsNavbar';
 import { Routes } from '@constants/Routes';
-import { buildQuizEntryHref } from '@constants/Routes';
 import { useCategoriesExplore } from '@hooks/useCategoriesExplore';
-import { Icon } from '@components/ui/Icon';
+import { useAuthStore } from '@stores/authStore';
+import { canVisitorAccessCategory, isVisitorSession } from '@services/auth/visitorAccessPolicy';
 
 export function CategoriesPage() {
-  const { data, loading, error } = useCategoriesExplore();
+  const navigate = useNavigate();
+  const { data: categories, loading, error, refetch } = useCategoriesExplore();
+  const token = useAuthStore((s) => s.token);
+  const hasRegisteredAccount = useAuthStore((s) => s.hasRegisteredAccount);
+
+  const onBack = useCallback(() => {
+    if (window.history.length > 1) {
+      navigate(-1);
+      return;
+    }
+    navigate(Routes.HOME, { replace: true });
+  }, [navigate]);
+
+  const onSearch = useCallback(() => {
+    window.alert('Fonctionnalité à venir.');
+  }, []);
+
+  const goCategory = useCallback(
+    (categorySlug: string, categoryName: string) => {
+      if (
+        isVisitorSession({ token, hasRegisteredAccount }) &&
+        !canVisitorAccessCategory({ slug: categorySlug, name: categoryName })
+      ) {
+        navigate(Routes.LOGIN);
+        return;
+      }
+      navigate(`${Routes.CATEGORIES}/${categorySlug}`);
+    },
+    [hasRegisteredAccount, navigate, token],
+  );
+
+  if (loading && !categories.length) {
+    return (
+      <div className="cat-page">
+        <div className="cat-centered">
+          <div className="cat-spinner" aria-label="Chargement" />
+        </div>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="cat-page">
+        <div className="cat-centered">
+          <p className="cat-error">Impossible de charger les catégories.</p>
+          <p className="cat-error">{error.message}</p>
+          <button type="button" className="cat-retry" onClick={() => void refetch()}>
+            Réessayer
+          </button>
+        </div>
+      </div>
+    );
+  }
 
   return (
-    <div>
-      <h1>Jouer</h1>
-      <p className="muted">Choisis une catégorie et lance un quiz.</p>
-      {loading ? <p>Chargement…</p> : null}
-      {error ? <p className="error-text">{error.message}</p> : null}
-      <div className="grid-cards" style={{ marginTop: 16 }}>
-        {data.map((cat) => (
-          <Link key={cat.id} to={`${Routes.CATEGORIES}/${cat.slug}`} className="card" style={{ padding: 18, display: 'block' }}>
-            <span style={{ width: 42, height: 42, borderRadius: 14, background: cat.color ?? '#F5A623', display: 'grid', placeItems: 'center', color: '#fff', marginBottom: 12 }}>
-              <Icon name={cat.icon ?? 'book-open'} />
-            </span>
-            <strong>{cat.name}</strong>
-            <div className="muted">{cat.quizCount} quiz</div>
-          </Link>
-        ))}
-      </div>
+    <div className="cat-page">
+      <StatisticsNavbar title="Top catégories" onBack={onBack} onSearch={onSearch} />
+      {categories.length === 0 ? (
+        <p className="cat-empty">Aucune catégorie disponible pour le moment.</p>
+      ) : (
+        <div className="cat-grid">
+          {categories.map((cat) => (
+            <CategoryExploreGridCard
+              key={cat.id}
+              name={cat.name}
+              slug={cat.slug}
+              onPress={() => goCategory(cat.slug, cat.name)}
+            />
+          ))}
+        </div>
+      )}
     </div>
   );
 }
-
-export { buildQuizEntryHref };

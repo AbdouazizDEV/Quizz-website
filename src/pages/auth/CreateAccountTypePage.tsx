@@ -1,60 +1,61 @@
 import { useState } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
+import { AuthShell } from '@components/ui/auth/AuthShell';
+import {
+  AccountTypeOption,
+  AccountTypeOptionCard,
+} from '@components/ui/onboarding/AccountTypeOptionCard';
+import { OnboardingNavbar } from '@components/ui/onboarding/OnboardingNavbar';
+import { OnboardingSkipBar } from '@components/ui/onboarding/OnboardingSkipBar';
 import { Routes } from '@constants/Routes';
 import { useOnboardingRegisterStore } from '@stores/onboardingRegisterStore';
-import { Icon } from '@components/ui/Icon';
 
-const OPTIONS = [
-  { id: 'personal', label: 'Personnel', icon: 'user', color: '#FFB703' },
-  { id: 'teacher', label: 'Professeur', icon: 'users', color: '#FB8500' },
-  { id: 'student', label: 'Étudiant', icon: 'user-check', color: '#00B894' },
-  { id: 'professional', label: 'Professionnel', icon: 'briefcase', color: '#FF6B6B' },
+const OPTIONS: AccountTypeOption[] = [
+  { id: 'personal', label: 'Personnel', gradientStart: '#FFB703', icon: 'user' },
+  { id: 'teacher', label: 'Professeur', gradientStart: '#FB8500', icon: 'users' },
+  { id: 'student', label: 'Étudiant', gradientStart: '#00B894', icon: 'user-check' },
+  { id: 'professional', label: 'Professionnel', gradientStart: '#FF6B6B', icon: 'briefcase' },
 ];
 
 export function CreateAccountTypePage() {
   const navigate = useNavigate();
+  const [selectedId, setSelectedId] = useState<string | null>(null);
   const setAccountTypeId = useOnboardingRegisterStore((s) => s.setAccountTypeId);
-  const [selected, setSelected] = useState<string | null>(null);
+
+  const handleSelect = (id: string) => {
+    setSelectedId(id);
+    setAccountTypeId(id);
+    navigate(Routes.CREATE_ACCOUNT_WORKPLACE);
+  };
 
   return (
-    <div className="auth-page">
-      <div className="auth-inner">
-        <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-          <Link to={Routes.WALKTHROUGH}><Icon name="chevron-left" /></Link>
-          <Link to={Routes.WALKTHROUGH} className="muted">Passer</Link>
+    <AuthShell
+      artSrc="/assets/icons/image1.png"
+      headline="Crée le compte qui te ressemble"
+      subline="Personnel, prof, étudiant ou pro — tu pourras toujours l’ajuster plus tard."
+      footer={<OnboardingSkipBar onSkip={() => navigate(Routes.WALKTHROUGH, { replace: true })} />}
+    >
+      <OnboardingNavbar progress={1 / 3} onBack={() => navigate(-1)} />
+      <div className="auth-scroll">
+        <div className="auth-text-block">
+          <h1 className="auth-title create-title">
+            Quel type de compte
+            <br />
+            aimez-vous créer ? 👦
+          </h1>
+          <p className="auth-subtitle auth-subtitle--onb">Vous pouvez l&apos;ignorer si vous n&apos;êtes pas sûr.</p>
         </div>
-        <div style={{ height: 8, background: '#F0F0F0', borderRadius: 99, margin: '20px 0' }}>
-          <div style={{ width: '33%', height: '100%', background: '#F5A623', borderRadius: 99 }} />
-        </div>
-        <h1>Quel type de compte ?</h1>
-        <div style={{ display: 'grid', gap: 12, marginTop: 24 }}>
-          {OPTIONS.map((opt) => (
-            <button
-              key={opt.id}
-              type="button"
-              className="card"
-              style={{
-                display: 'flex',
-                alignItems: 'center',
-                gap: 14,
-                padding: 16,
-                border: selected === opt.id ? '2px solid #E8431A' : '1px solid var(--border)',
-                background: '#fff',
-              }}
-              onClick={() => {
-                setSelected(opt.id);
-                setAccountTypeId(opt.id);
-                navigate(Routes.CREATE_ACCOUNT_WORKPLACE);
-              }}
-            >
-              <span style={{ width: 44, height: 44, borderRadius: 14, background: opt.color, display: 'grid', placeItems: 'center', color: '#fff' }}>
-                <Icon name={opt.icon} />
-              </span>
-              <strong>{opt.label}</strong>
-            </button>
+        <div className="auth-options">
+          {OPTIONS.map((option) => (
+            <AccountTypeOptionCard
+              key={option.id}
+              option={option}
+              selected={selectedId === option.id}
+              onPress={handleSelect}
+            />
           ))}
         </div>
       </div>
-    </div>
+    </AuthShell>
   );
 }

@@ -5,6 +5,46 @@ import type {
   GainsRewardCatalogItem,
   GainsStreakTier,
 } from '@app-types/gains.types';
+import { GainsRoutes } from '@constants/gainsRoutes';
+
+export const GAINS_NAV_CARDS = [
+  {
+    id: 'how',
+    icon: 'compass',
+    title: 'Comment gagner',
+    subtitle: 'Joue stratégiquement : Express, défis, série…',
+    to: GainsRoutes.howToWin,
+    accent: '#FFB703',
+    delayMs: 200,
+  },
+  {
+    id: 'prizes',
+    icon: 'gift',
+    title: 'Ce que je peux gagner',
+    subtitle: 'Cash prizes & offres partenaires',
+    to: GainsRoutes.prizes,
+    accent: '#F97316',
+    delayMs: 240,
+  },
+  {
+    id: 'rewards',
+    icon: 'shopping-bag',
+    title: 'Récompenses',
+    subtitle: 'Échange tes points contre des lots',
+    to: GainsRoutes.rewards,
+    accent: '#22C55E',
+    delayMs: 280,
+  },
+  {
+    id: 'mine',
+    icon: 'inbox',
+    title: 'Mes gains',
+    subtitle: 'Historique, stats et activité',
+    to: GainsRoutes.myEarnings,
+    accent: '#6366F1',
+    delayMs: 320,
+  },
+] as const;
 
 export const GAINS_STREAK_TIERS: GainsStreakTier[] = [
   {

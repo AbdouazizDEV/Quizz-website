@@ -16,6 +16,7 @@ interface CachedAuthMeEnvelope {
 }
 
 let loadInFlight: Promise<AuthMeResponse | null> | null = null;
+let loadGeneration = 0;
 
 async function readCachedEnvelope(): Promise<CachedAuthMeEnvelope | null> {
   await ensureOfflineDatabaseReady();
@@ -104,28 +105,35 @@ export async function loadAuthMe(options?: { force?: boolean }): Promise<AuthMeR
   }
 
   const run = async (): Promise<AuthMeResponse | null> => {
+    const generation = ++loadGeneration;
     const store = useAuthMeStore.getState();
     store.setError(null);
 
     const cached = await readCachedEnvelope();
+    if (generation !== loadGeneration) {
+      return useAuthMeStore.getState().data ?? cached?.data ?? null;
+    }
     if (cached?.data) {
       store.setData(cached.data);
     }
 
     const online = await fetchNetworkOnline();
     if (!online) {
-      store.setLoading(false);
+      if (generation === loadGeneration) store.setLoading(false);
       return cached?.data ?? null;
     }
 
     if (cached && isCacheFresh(cached.cachedAt, force)) {
-      store.setLoading(false);
+      if (generation === loadGeneration) store.setLoading(false);
       return cached.data;
     }
 
-    store.setLoading(true);
+    if (generation === loadGeneration) store.setLoading(true);
     try {
       const remote = await fetchAuthMeFromApi();
+      if (generation !== loadGeneration) {
+        return useAuthMeStore.getState().data ?? remote ?? cached?.data ?? null;
+      }
       if (!remote) {
         store.setLoading(false);
         return cached?.data ?? null;
@@ -143,6 +151,9 @@ export async function loadAuthMe(options?: { force?: boolean }): Promise<AuthMeR
       store.setLoading(false);
       return remote;
     } catch (e) {
+      if (generation !== loadGeneration) {
+        return useAuthMeStore.getState().data ?? cached?.data ?? null;
+      }
       const err = e instanceof Error ? e : new Error(String(e));
       store.setError(err);
       store.setLoading(false);
@@ -167,11 +178,16 @@ export async function patchAuthMeFromQuizComplete(result: {
   total_score: number;
   quizzes_completed: number;
 }): Promise<void> {
-  const current = useAuthMeStore.getState().data ?? (await getCachedAuthMe());
-  if (!current?.profile) {
+  if (!Number.isFinite(result.total_score)) {
     await loadAuthMe({ force: true });
     return;
   }
+
+  let current = useAuthMeStore.getState().data ?? (await getCachedAuthMe());
+  if (!current?.profile) {
+    current = await loadAuthMe({ force: true });
+  }
+  if (!current?.profile) return;
 
   const updated: AuthMeResponse = {
     ...current,

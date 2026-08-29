@@ -1,106 +1,102 @@
-import { getSupabaseClient } from '@services/supabase/supabaseClientSingleton';
+import axios from 'axios';
 
 import type { DefisDashboardData } from '@app-types/defisDashboard.types';
+import { apiClient } from '@services/api/apiClient';
+import { fetchActiveWeeklyChallenges } from '@services/defis/challengeRepository';
+import { fetchCompetitionsByTab } from '@services/defis/competitionRepository';
+import { fetchPendingDuelsForUser } from '@services/defis/duelRepository';
+import {
+  asRecord,
+  authHeaders,
+  isNestDefisRouteUnavailable,
+  isNotFound,
+  NestDefisRouteUnavailableError,
+  readFiniteNumber,
+  readString,
+} from '@services/defis/nestDefisHelpers';
 
-interface WeeklyChallengeRow {
-  id: string;
-  title: string;
-  ends_at: string;
+function emptyStats(): DefisDashboardData['userStats'] {
+  return { defiPlayed: 0, bestRank: null, duelsWon: 0, duelsTotal: 0 };
 }
 
-function monthStartIso(): string {
-  const now = new Date();
-  return new Date(now.getFullYear(), now.getMonth(), 1).toISOString();
-}
-
-export async function fetchDefisDashboard(userId: string): Promise<DefisDashboardData> {
-  const supabase = getSupabaseClient();
-  if (!supabase) {
-    throw new Error('Supabase non configuré');
-  }
-
-  const nowIso = new Date().toISOString();
-
-  const { data: challengeRows } = await supabase
-    .from('weekly_challenges')
-    .select('id, title, ends_at')
-    .eq('status', 'actif')
-    .eq('type', 'hebdomadaire')
-    .lte('starts_at', nowIso)
-    .gte('ends_at', nowIso)
-    .limit(1);
-
-  const challenge = (challengeRows?.[0] as WeeklyChallengeRow | undefined) ?? null;
-
-  const { count: tournamentCount } = await supabase
-    .from('competitions')
-    .select('id', { count: 'exact', head: true })
-    .eq('status', 'live');
-
-  const { count: duelCount } = await supabase
-    .from('challenges')
-    .select('id', { count: 'exact', head: true })
-    .eq('challenged_id', userId)
-    .eq('status', 'pending');
-
-  const monthStart = monthStartIso();
-
-  const { count: defiPlayed } = await supabase
-    .from('challenge_participations')
-    .select('id', { count: 'exact', head: true })
-    .eq('user_id', userId)
-    .gte('played_at', monthStart);
-
-  const { count: duelsTotal } = await supabase
-    .from('challenges')
-    .select('id', { count: 'exact', head: true })
-    .or(`challenger_id.eq.${userId},challenged_id.eq.${userId}`)
-    .eq('status', 'completed');
-
-  const { count: duelsWon } = await supabase
-    .from('challenges')
-    .select('id', { count: 'exact', head: true })
-    .eq('winner_id', userId)
-    .eq('status', 'completed');
-
-  let bestRank: number | null = null;
-  if (challenge) {
-    const { data: myParticipations } = await supabase
-      .from('challenge_participations')
-      .select('score')
-      .eq('user_id', userId)
-      .eq('challenge_id', challenge.id);
-
-    const myTotal = (myParticipations ?? []).reduce((sum, row) => sum + (row.score ?? 0), 0);
-    if (myTotal > 0) {
-      const { data: allParticipations } = await supabase
-        .from('challenge_participations')
-        .select('user_id, score')
-        .eq('challenge_id', challenge.id);
-
-      const totalsByUser = new Map<string, number>();
-      for (const row of allParticipations ?? []) {
-        const prev = totalsByUser.get(row.user_id) ?? 0;
-        totalsByUser.set(row.user_id, prev + (row.score ?? 0));
-      }
-      const sorted = [...totalsByUser.entries()].sort((a, b) => b[1] - a[1]);
-      const index = sorted.findIndex(([uid]) => uid === userId);
-      bestRank = index >= 0 ? index + 1 : null;
-    }
-  }
-
+function mapDashboard(raw: unknown): DefisDashboardData {
+  const row = asRecord(raw) ?? {};
+  const challenge = asRecord(row.current_week_challenge);
+  const stats = asRecord(row.user_stats);
+  const challengeId = readString(challenge?.id);
+  const bestRank = readFiniteNumber(stats?.best_rank);
   return {
-    activeChallengeCount: challenge ? 1 : 0,
-    activeTournamentCount: tournamentCount ?? 0,
-    pendingDuelCount: duelCount ?? 0,
-    currentWeekChallenge: challenge
-      ? { id: challenge.id, title: challenge.title, endsAt: challenge.ends_at }
+    activeChallengeCount: readFiniteNumber(row.active_challenge_count) ?? 0,
+    activeTournamentCount: readFiniteNumber(row.active_tournament_count) ?? 0,
+    pendingDuelCount: readFiniteNumber(row.pending_duel_count) ?? 0,
+    currentWeekChallenge: challengeId
+      ? {
+          id: challengeId,
+          title: readString(challenge?.title) ?? 'Challenge de la semaine',
+          endsAt: readString(challenge?.ends_at) ?? readString(challenge?.endsAt) ?? '',
+        }
       : null,
     userStats: {
-      defiPlayed: defiPlayed ?? 0,
-      bestRank,
-      duelsWon: duelsWon ?? 0,
-      duelsTotal: duelsTotal ?? 0,
+      defiPlayed: readFiniteNumber(stats?.defi_played) ?? 0,
+      bestRank: bestRank && bestRank > 0 ? bestRank : null,
+      duelsWon: readFiniteNumber(stats?.duels_won) ?? 0,
+      duelsTotal: readFiniteNumber(stats?.duels_total) ?? 0,
     },
   };
+}
+
+async function tryDerive<T>(load: () => Promise<T>): Promise<{ ok: boolean; missing: boolean; data: T | null }> {
+  try {
+    return { ok: true, missing: false, data: await load() };
+  } catch (error) {
+    if (isNotFound(error) || isNestDefisRouteUnavailable(error)) {
+      return { ok: false, missing: true, data: null };
+    }
+    throw error;
+  }
+}
+
+/** Fallback uniquement si GET /defis/dashboard est en 404. */
+async function composeDashboardFromLists(userId: string): Promise<DefisDashboardData> {
+  const [challenges, tournaments, duels] = await Promise.all([
+    tryDerive(() => fetchActiveWeeklyChallenges()),
+    tryDerive(() => fetchCompetitionsByTab('en_cours', userId)),
+    tryDerive(() => fetchPendingDuelsForUser(userId, { page: 1, limit: 1 })),
+  ]);
+
+  if (challenges.missing && tournaments.missing && duels.missing) {
+    throw new NestDefisRouteUnavailableError(
+      'GET /api/v1/defis/dashboard (et lists challenges / competitions / duels aussi en 404)',
+    );
+  }
+
+  const challengeList = challenges.data ?? [];
+  const featured = challengeList[0];
+  const duelPage = duels.data;
+
+  return {
+    activeChallengeCount: challengeList.length,
+    activeTournamentCount: (tournaments.data ?? []).length,
+    pendingDuelCount: duelPage?.total ?? duelPage?.items.length ?? 0,
+    currentWeekChallenge: featured
+      ? { id: featured.id, title: featured.title, endsAt: featured.endsAt }
+      : null,
+    userStats: emptyStats(),
+  };
+}
+
+export async function fetchDefisDashboard(userId?: string): Promise<DefisDashboardData> {
+  try {
+    const { data } = await apiClient.get('/defis/dashboard', { headers: authHeaders() });
+    return mapDashboard(data);
+  } catch (error) {
+    if (!isNotFound(error) && !isNestDefisRouteUnavailable(error)) {
+      if (axios.isAxiosError(error) && !error.response) {
+        throw new Error('Réseau indisponible. Réessaie dans un instant.');
+      }
+      throw error instanceof Error ? error : new NestDefisRouteUnavailableError('GET /api/v1/defis/dashboard');
+    }
+
+    return composeDashboardFromLists(userId?.trim() ?? '');
+  }
 }

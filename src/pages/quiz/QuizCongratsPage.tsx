@@ -47,21 +47,31 @@ export function QuizCongratsPage() {
   }, [correctCount, total]);
 
   return (
-    <div style={{ minHeight: '100svh', background: 'linear-gradient(160deg,#E8431A,#F5A623)', color: '#fff', padding: 24 }}>
-      <div id={QUIZ_SHARE_CAPTURE_ID} className="card" style={{ width: 'min(100%, 420px)', margin: '40px auto', padding: 24, color: '#1A1A2E' }}>
-        <h1 style={{ marginTop: 0 }}>{title}</h1>
-        <p className="muted">{payload?.quiz.title}</p>
-        <div style={{ fontSize: 48, fontWeight: 900 }}>{sessionPoints} pts</div>
-        <p style={{ fontWeight: 700 }}>{correctCount}/{total} bonnes réponses · max {maxPoints}</p>
-        <div style={{ display: 'grid', gap: 8, marginTop: 16 }}>
-          {leaderboard.slice(0, 5).map((row) => (
-            <div key={row.userId} style={{ display: 'flex', justifyContent: 'space-between', fontWeight: 700 }}>
-              <span>#{row.rank} {row.displayName}</span>
-              <span>{row.score}</span>
-            </div>
-          ))}
+    <div className="quiz-congrats-page">
+      <div id={QUIZ_SHARE_CAPTURE_ID} className="quiz-congrats-card">
+        <div>
+          <h1 style={{ marginTop: 0 }}>{title}</h1>
+          <p className="muted">{payload?.quiz.title}</p>
+          <div className="quiz-congrats-score">{sessionPoints} pts</div>
+          <p style={{ fontWeight: 700 }}>
+            {correctCount}/{total} bonnes réponses · max {maxPoints}
+          </p>
         </div>
-        <div style={{ display: 'grid', gap: 10, marginTop: 24 }}>
+        <div>
+          <p style={{ fontWeight: 800, margin: '0 0 10px' }}>Classement</p>
+          <div className="quiz-congrats-lb">
+            {leaderboard.slice(0, 5).map((row) => (
+              <div key={row.userId} className="quiz-congrats-lb-row">
+                <span>
+                  #{row.rank} {row.displayName}
+                </span>
+                <span>{row.score}</span>
+              </div>
+            ))}
+            {leaderboard.length === 0 ? <p className="muted">Aucun classement pour le moment.</p> : null}
+          </div>
+        </div>
+        <div className="quiz-congrats-actions">
           <button
             type="button"
             className="btn btn-primary"

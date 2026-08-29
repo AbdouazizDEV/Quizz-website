@@ -71,6 +71,31 @@ export interface CompetitionSummary {
   isRegistered: boolean;
 }
 
+export interface CompetitionBracketPlayer {
+  id: string;
+  name: string;
+  score: number | null;
+}
+
+export interface CompetitionBracketMatch {
+  id: string;
+  round: number;
+  player1: CompetitionBracketPlayer | null;
+  player2: CompetitionBracketPlayer | null;
+  winnerId: string | null;
+}
+
+export interface CompetitionBracketRound {
+  round: number;
+  label: string;
+  matches: CompetitionBracketMatch[];
+}
+
+export interface CompetitionBracket {
+  competitionId: string;
+  rounds: CompetitionBracketRound[];
+}
+
 export type DuelPhase =
   | 'needs_your_acceptance'
   | 'waiting_opponent_acceptance'

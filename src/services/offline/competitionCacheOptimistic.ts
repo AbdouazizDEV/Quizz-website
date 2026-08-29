@@ -18,7 +18,7 @@ async function patchCompetitionInListCache(
   if (!hasMatch) return;
 
   const updated = list.map((item) => (item.id === competitionId ? patch(item) : item));
-  await offlineStore.setCachedResponse({ cacheKey, source: 'supabase', data: updated });
+  await offlineStore.setCachedResponse({ cacheKey, source: 'api', data: updated });
 }
 
 export async function findCachedCompetitionSummary(
@@ -90,7 +90,7 @@ export async function applyOptimisticRegistration(
   if (detail) {
     await offlineStore.setCachedResponse({
       cacheKey: detailKey,
-      source: 'supabase',
+      source: 'api',
       data: patch(detail),
     });
   } else if (register) {
@@ -101,7 +101,7 @@ export async function applyOptimisticRegistration(
     if (fromList) {
       await offlineStore.setCachedResponse({
         cacheKey: detailKey,
-        source: 'supabase',
+        source: 'api',
         data: patch(fromList),
       });
     }

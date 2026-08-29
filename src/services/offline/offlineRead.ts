@@ -1,10 +1,12 @@
-import { offlineStore } from './OfflineStore';
 import { ensureOfflineDatabaseReady } from './offlineDatabase';
 import { fetchNetworkOnline } from './networkStatus';
+import { offlineStore } from './OfflineStore';
 import type { OfflineSource } from './types';
 
 export class OfflineCacheMissError extends Error {
-  constructor(message = 'Données indisponibles hors ligne. Ouvrez cette page une fois en ligne pour les mettre en cache.') {
+  constructor(
+    message = 'Données indisponibles hors ligne. Ouvrez cette page une fois en ligne pour les mettre en cache.',
+  ) {
     super(message);
     this.name = 'OfflineCacheMissError';
   }
@@ -14,17 +16,26 @@ export function isOfflineCacheMissError(error: unknown): error is OfflineCacheMi
   return error instanceof OfflineCacheMissError;
 }
 
+function skipCacheFallback(error: unknown): boolean {
+  return Boolean(
+    error &&
+      typeof error === 'object' &&
+      'skipOfflineCache' in error &&
+      (error as { skipOfflineCache?: boolean }).skipOfflineCache === true,
+  );
+}
+
 interface ReadWithOfflineCacheOptions<T> {
   cacheKey: string;
   source: OfflineSource;
   fetchOnline: () => Promise<T>;
-  /** Si false, tente le cache même quand le réseau semble disponible (erreur API). */
   fallbackToCacheOnError?: boolean;
 }
 
 /**
- * En ligne : fetch réseau puis mise en cache SQLite.
+ * En ligne : fetch réseau puis mise en cache.
  * Hors ligne (ou échec réseau) : retourne le cache local si disponible.
+ * Les 404 de routes Nest non implémentées (`skipOfflineCache`) ne sont jamais masquées.
  */
 export async function readWithOfflineCache<T>({
   cacheKey,
@@ -45,7 +56,7 @@ export async function readWithOfflineCache<T>({
       }
       return data;
     } catch (error) {
-      if (!fallbackToCacheOnError) throw error;
+      if (skipCacheFallback(error) || !fallbackToCacheOnError) throw error;
       const cached = await offlineStore.getCachedResponse<T>(cacheKey);
       if (cached !== null) return cached;
       throw error;

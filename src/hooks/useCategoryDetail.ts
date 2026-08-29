@@ -42,5 +42,18 @@ export function useCategoryDetail(slug: string | undefined, sort: QuizSortMode):
     void load();
   }, [load]);
 
+  useEffect(() => {
+    const onFocus = () => {
+      if (document.visibilityState === 'hidden') return;
+      void load();
+    };
+    window.addEventListener('focus', onFocus);
+    document.addEventListener('visibilitychange', onFocus);
+    return () => {
+      window.removeEventListener('focus', onFocus);
+      document.removeEventListener('visibilitychange', onFocus);
+    };
+  }, [load]);
+
   return { data, loading, error, refetch: load };
 }

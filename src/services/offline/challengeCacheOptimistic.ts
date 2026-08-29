@@ -28,7 +28,7 @@ export async function applyOptimisticChallengeParticipation(
 
   await offlineStore.setCachedResponse({
     cacheKey,
-    source: 'supabase',
+    source: 'api',
     data: {
       ...progress,
       dailyQuizzes,

@@ -1,152 +1,390 @@
-import { Link, useNavigate } from 'react-router-dom';
-import { useMemo } from 'react';
-import { Routes, buildUserProfileHref } from '@constants/Routes';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
+
+import { HomeActionTiles } from '@components/ui/home/HomeActionTiles';
+import { HomeDailyCategoriesSection } from '@components/ui/home/HomeDailyCategoriesSection';
+import { HomeHeaderCard } from '@components/ui/home/HomeHeaderCard';
+import {
+  NotificationDeleteConfirmModal,
+  NotificationMessageModal,
+} from '@components/ui/home/HomeNotificationModals';
+import { HomeNotificationsSheet } from '@components/ui/home/HomeNotificationsSheet';
+import { HomeSettingsDrawer } from '@components/ui/home/HomeSettingsDrawer';
+import { HomeTopNavbar } from '@components/ui/home/HomeTopNavbar';
+import { HomeInsightCarousel, type HomeInsightItem } from '@components/ui/home/HomeInsightCarousel';
+import {
+  HomeLeaderboardSection,
+  type HomeLeaderboardUser,
+} from '@components/ui/home/HomeLeaderboardSection';
+import { HomeRewardsSection } from '@components/ui/home/HomeRewardsSection';
+import { HomeSectionTitle } from '@components/ui/home/HomeSectionTitle';
+import type { AppNotification } from '@app-types/notification.types';
+import { buildUserProfileHref, Routes } from '@constants/Routes';
 import { DefisRoutes } from '@constants/defisRoutes';
-import { HOME_ACTION_TILES } from '@constants/homeActionTiles';
-import { useAuthMe } from '@hooks/useAuthMe';
+import type { HomeActionTileId } from '@constants/homeActionTiles';
 import { useCategoriesExplore } from '@hooks/useCategoriesExplore';
+import { useAuthMe } from '@hooks/useAuthMe';
+import { useDefisDashboard } from '@hooks/defis/useDefisDashboard';
 import { useGlobalLeaderboard } from '@hooks/useGlobalLeaderboard';
-import { formatLevelCodeLabel, getLevelProgressDetail, initialsFromName, levelCodeFromScore } from '@utils/levelDisplay';
-import { Icon } from '@components/ui/Icon';
 import { useAuthStore } from '@stores/authStore';
 import { canVisitorAccessCategory, isVisitorSession } from '@services/auth/visitorAccessPolicy';
+import { useNotifications } from '@hooks/useNotifications';
+import { useNotificationInteractions } from '@hooks/useNotificationInteractions';
+import { getUserAvatarUri } from '@utils/getUserAvatarUri';
+import {
+  elapsedDaysSince,
+  firstNameFromDisplay,
+  formatJoursLabel,
+  formatLevelCodeLabel,
+  getLevelProgressDetail,
+  initialsFromName,
+  levelCodeFromScore,
+  levelProgressEndpoints,
+} from '@utils/levelDisplay';
+import { useAppError } from '@providers/AppErrorProvider';
 
-const INSIGHTS = [
-  { title: 'Le cerveau adore les quiz courts', body: 'Des sessions de 3 à 5 minutes améliorent la mémorisation.', tag: 'Neurosciences' },
-  { title: 'Répondre vite aide la concentration', body: 'Limiter le temps de réponse active l’attention.', tag: 'Productivité' },
-  { title: 'La répétition espacée fonctionne', body: 'Rejouer un quiz 24h puis 72h plus tard ancre les connaissances.', tag: 'Méthode' },
+const INSIGHTS: HomeInsightItem[] = [
+  {
+    id: 'savoir-1',
+    title: 'Le cerveau adore les quiz courts',
+    body: 'Des sessions de 3 a 5 minutes ameliorent la memorisation a long terme.',
+    tag: 'Neurosciences',
+    gradient: ['#EEF2FF', '#E0E7FF'],
+  },
+  {
+    id: 'savoir-2',
+    title: 'Repondre vite aide la concentration',
+    body: "Limiter le temps de reponse active l'attention et reduit la distraction.",
+    tag: 'Productivite',
+    gradient: ['#FFF7D6', '#FFE9A8'],
+  },
+  {
+    id: 'savoir-3',
+    title: 'La repetition espacee fonctionne',
+    body: 'Rejouer un quiz 24h puis 72h plus tard ancre les connaissances.',
+    tag: 'Methode',
+    gradient: ['#E8FAF2', '#CCF1E2'],
+  },
 ];
 
 export function HomePage() {
   const navigate = useNavigate();
+  const { showAppError } = useAppError();
+  const carouselRef = useRef<HTMLDivElement | null>(null);
+  const [activeInsight, setActiveInsight] = useState(0);
   const token = useAuthStore((s) => s.token);
   const hasRegisteredAccount = useAuthStore((s) => s.hasRegisteredAccount);
-  const { data: me } = useAuthMe();
-  const { items: leaderboard } = useGlobalLeaderboard(5);
-  const { data: categories } = useCategoriesExplore();
-  const profile = me?.profile;
-  const score = profile?.total_score ?? 0;
-  const level = formatLevelCodeLabel(levelCodeFromScore(score));
-  const progress = getLevelProgressDetail(score);
-  const name = profile?.full_name || profile?.username || 'Joueur';
-  const isVisitor = isVisitorSession({ token, hasRegisteredAccount });
+  const { data: me, loading: meLoading, refetch: refetchAuthMe } = useAuthMe();
+  const { data: defisDashboard } = useDefisDashboard(me?.user?.id);
+  const { items: leaderboardRows, me: leaderboardMe, refetch: refetchLeaderboard } =
+    useGlobalLeaderboard(5);
+  const {
+    data: allCategories,
+    loading: categoriesLoading,
+    error: categoriesError,
+  } = useCategoriesExplore();
+  const [notificationsVisible, setNotificationsVisible] = useState(false);
+  const [settingsDrawerVisible, setSettingsDrawerVisible] = useState(false);
+  const {
+    items: notifications,
+    unreadCount,
+    loading: notificationsLoading,
+    actionId: notificationActionId,
+    refresh: refreshNotifications,
+    markRead,
+    markAllRead,
+    remove: removeNotification,
+    acceptFriend,
+    rejectFriend,
+    acceptDuel,
+    rejectDuel,
+  } = useNotifications();
+  const {
+    messageItem,
+    deleteTarget,
+    deleteBusy,
+    handlePress: handleNotificationPress,
+    requestDelete,
+    cancelDelete,
+    confirmDelete,
+    closeMessage,
+  } = useNotificationInteractions({
+    markRead,
+    remove: removeNotification,
+    onNavigate: () => setNotificationsVisible(false),
+  });
 
-  const topCategories = useMemo(() => categories.slice(0, 3), [categories]);
+  const isVisitor = useMemo(
+    () => isVisitorSession({ token, hasRegisteredAccount }),
+    [token, hasRegisteredAccount],
+  );
+
+  useEffect(() => {
+    const refresh = () => {
+      void refetchAuthMe({ force: true });
+      void refetchLeaderboard();
+      if (token?.trim()) {
+        void refreshNotifications();
+      }
+    };
+    refresh();
+    const onFocus = () => refresh();
+    window.addEventListener('focus', onFocus);
+    document.addEventListener('visibilitychange', onFocus);
+    return () => {
+      window.removeEventListener('focus', onFocus);
+      document.removeEventListener('visibilitychange', onFocus);
+    };
+  }, [refetchAuthMe, refetchLeaderboard, refreshNotifications, token]);
+
+  const openNotifications = useCallback(async () => {
+    setNotificationsVisible(true);
+    if (!token?.trim()) return;
+    try {
+      await refreshNotifications();
+    } catch {
+      showAppError('Impossible de charger les notifications pour le moment.', {
+        title: 'Notifications',
+        onRetry: () => {
+          setNotificationsVisible(true);
+          void refreshNotifications();
+        },
+      });
+    }
+  }, [refreshNotifications, showAppError, token]);
+
+  const onAcceptDuelNotification = useCallback(
+    async (item: AppNotification) => {
+      try {
+        const duelId = await acceptDuel(item);
+        setNotificationsVisible(false);
+        navigate(DefisRoutes.duelDetail(duelId));
+      } catch (error) {
+        showAppError(error instanceof Error ? error.message : "Impossible d'accepter le duel.", {
+          title: 'Duel',
+        });
+      }
+    },
+    [acceptDuel, navigate, showAppError],
+  );
+
+  const onRejectDuelNotification = useCallback(
+    async (item: AppNotification) => {
+      try {
+        await rejectDuel(item);
+      } catch (error) {
+        showAppError(error instanceof Error ? error.message : 'Impossible de refuser le duel.', {
+          title: 'Duel',
+        });
+      }
+    },
+    [rejectDuel, showAppError],
+  );
+
+  const topThreeCategories = useMemo(() => allCategories.slice(0, 3), [allCategories]);
+
+  const goToCategory = useCallback(
+    (categorySlug: string) => {
+      if (
+        isVisitorSession({ token, hasRegisteredAccount }) &&
+        !canVisitorAccessCategory({ slug: categorySlug })
+      ) {
+        navigate(Routes.LOGIN);
+        return;
+      }
+      navigate(`${Routes.CATEGORIES}/${categorySlug}`);
+    },
+    [hasRegisteredAccount, navigate, token],
+  );
+
+  const goToDefisTile = useCallback(
+    (tileId: HomeActionTileId) => {
+      switch (tileId) {
+        case 'challenge':
+          navigate(DefisRoutes.challengeList);
+          break;
+        case 'tournament':
+          navigate(DefisRoutes.tournoiList);
+          break;
+        case 'duel':
+          navigate(DefisRoutes.duelHub);
+          break;
+      }
+    },
+    [navigate],
+  );
+
+  useEffect(() => {
+    const timer = window.setInterval(() => {
+      setActiveInsight((prev) => (prev + 1) % INSIGHTS.length);
+    }, 4200);
+    return () => window.clearInterval(timer);
+  }, []);
+
+  const headerVm = useMemo(() => {
+    const profile = me?.profile;
+    const meta = me?.user?.user_metadata as Record<string, unknown> | undefined;
+    const userRaw = me?.user as Record<string, unknown> | undefined;
+    const display =
+      profile?.full_name?.trim() ||
+      (typeof meta?.full_name === 'string' ? meta.full_name.trim() : '') ||
+      (typeof meta?.username === 'string' ? meta.username.trim() : '') ||
+      profile?.username?.trim() ||
+      '';
+    const first = firstNameFromDisplay(display || 'Joueur');
+    const initials = initialsFromName(display || first);
+    const score = profile?.total_score ?? 0;
+    const levelCode = levelCodeFromScore(score);
+    const progressDetail = getLevelProgressDetail(score);
+    const progress = progressDetail.progress;
+    const { left, right } = levelProgressEndpoints(score);
+    const streak = profile?.streak_days ?? 0;
+    const createdAt = typeof userRaw?.created_at === 'string' ? userRaw.created_at : undefined;
+    const elapsedDays = elapsedDaysSince(createdAt);
+    const daysActive = Math.max(profile?.days_active ?? 0, elapsedDays);
+    const clockLabel =
+      streak > 0 ? formatJoursLabel(streak) : daysActive > 0 ? formatJoursLabel(daysActive) : '0 jour';
+    const loadingPlaceholders = Boolean(token?.trim()) && meLoading;
+    const meRank = leaderboardMe?.rank;
+
+    return {
+      userId: me?.user?.id,
+      avatarInitial: initials,
+      avatarUri: getUserAvatarUri(
+        me?.user?.id ?? 'me',
+        profile?.avatar_url ?? (typeof meta?.avatar_url === 'string' ? meta.avatar_url : undefined),
+      ),
+      displayNameWithEmoji: loadingPlaceholders ? '··· 👋' : `${first} 👋`,
+      totalScoreDisplay: loadingPlaceholders ? '—' : String(score),
+      levelLabel: formatLevelCodeLabel(levelCode),
+      rankLabel: meRank ? `#${meRank}` : '#—',
+      streakOrDaysLabel: loadingPlaceholders ? '···' : clockLabel,
+      progressLabelLeft: left,
+      progressLabelRight: right,
+      pointsRemainingLabel: loadingPlaceholders ? '···' : progressDetail.remainingLabel,
+      progressPercentLabel: loadingPlaceholders ? '' : `${progressDetail.percent}%`,
+      progress,
+    };
+  }, [leaderboardMe?.rank, me, meLoading, token]);
+
+  const leaderboardUsers = useMemo<HomeLeaderboardUser[]>(
+    () =>
+      leaderboardRows.map((row, idx) => ({
+        id: row.id,
+        name: row.displayName,
+        points: row.score,
+        avatar: row.avatarUrl,
+        rank: row.rank || idx + 1,
+      })),
+    [leaderboardRows],
+  );
 
   return (
-    <div style={{ display: 'grid', gap: 20 }}>
-      <header style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-        <div>
-          <p className="muted" style={{ margin: 0, fontWeight: 700 }}>Salut</p>
-          <h1 style={{ margin: 0, fontSize: 26 }}>{name}</h1>
-        </div>
-        <div style={{ display: 'flex', gap: 10 }}>
-          <Link to={Routes.SETTINGS_NOTIFICATIONS} className="btn btn-ghost" aria-label="Notifications" style={{ padding: 10 }}>
-            <Icon name="bell" />
-          </Link>
-          <Link to={Routes.SETTINGS} className="btn btn-ghost" aria-label="Paramètres" style={{ padding: 10 }}>
-            <Icon name="settings" />
-          </Link>
-        </div>
-      </header>
+    <div className="home-page">
+      <HomeTopNavbar
+        notificationCount={unreadCount}
+        onPressNotifications={() => void openNotifications()}
+        onPressMenu={() => setSettingsDrawerVisible(true)}
+      />
 
-      <section className="page-hero">
-        <div style={{ display: 'flex', justifyContent: 'space-between', gap: 16 }}>
-          <div>
-            <div style={{ fontSize: 13, fontWeight: 800, opacity: 0.9 }}>{level}</div>
-            <div style={{ fontSize: 40, fontWeight: 900, lineHeight: 1.1 }}>{score}</div>
-            <div style={{ fontWeight: 700 }}>points · série {profile?.streak_days ?? 0} j</div>
-          </div>
-          <div style={{ width: 56, height: 56, borderRadius: '50%', background: 'rgba(255,255,255,.2)', display: 'grid', placeItems: 'center', fontWeight: 900 }}>
-            {initialsFromName(name)}
-          </div>
-        </div>
-        <div className="progress-bar" style={{ marginTop: 16 }}>
-          <span style={{ width: `${progress.percent}%` }} />
-        </div>
-        <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 12, marginTop: 8, fontWeight: 700 }}>
-          <span>{progress.fromLabel}</span>
-          <span>{progress.remainingLabel}</span>
-        </div>
+      <HomeHeaderCard
+        progress={headerVm.progress}
+        userId={headerVm.userId}
+        avatarInitial={headerVm.avatarInitial}
+        avatarUri={headerVm.avatarUri}
+        displayNameWithEmoji={headerVm.displayNameWithEmoji}
+        totalScoreDisplay={headerVm.totalScoreDisplay}
+        levelLabel={headerVm.levelLabel}
+        rankLabel={headerVm.rankLabel}
+        streakOrDaysLabel={headerVm.streakOrDaysLabel}
+        progressLabelLeft={headerVm.progressLabelLeft}
+        progressLabelRight={headerVm.progressLabelRight}
+        pointsRemainingLabel={headerVm.pointsRemainingLabel}
+        progressPercentLabel={headerVm.progressPercentLabel}
+        onPressAvatar={() => navigate(Routes.PROFILE)}
+      />
+
+      <section className="home-section">
+        <HomeSectionTitle title="Le savoir du jour" />
+        <HomeInsightCarousel
+          insights={INSIGHTS}
+          activeIndex={activeInsight}
+          onChangeIndex={setActiveInsight}
+          carouselRef={carouselRef}
+        />
       </section>
 
-      <section>
-        <h2>Jouer</h2>
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 10 }}>
-          {HOME_ACTION_TILES.map((tile) => (
-            <button
-              key={tile.id}
-              type="button"
-              className="card"
-              style={{ padding: 14, textAlign: 'left', background: '#fff' }}
-              onClick={() =>
-                navigate(
-                  tile.id === 'challenge'
-                    ? DefisRoutes.challengeList
-                    : tile.id === 'tournament'
-                      ? DefisRoutes.tournoiList
-                      : DefisRoutes.duelHub,
-                )
-              }
-            >
-              <Icon name={tile.icon} color="#E8431A" />
-              <div style={{ fontWeight: 800, marginTop: 8 }}>{tile.title}</div>
-              <span className="muted" style={{ fontSize: 12 }}>{tile.badge}</span>
-            </button>
-          ))}
-        </div>
+      <section className="home-section">
+        <HomeSectionTitle
+          title="Quizz du jour"
+          action="Voir tout"
+          onActionPress={() => navigate(Routes.CATEGORIES)}
+        />
+        <HomeDailyCategoriesSection
+          categories={topThreeCategories}
+          loading={categoriesLoading}
+          error={categoriesError}
+          onPressCategory={goToCategory}
+        />
       </section>
 
-      <section>
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-          <h2>Catégories</h2>
-          <Link to={Routes.CATEGORIES} style={{ color: '#E8431A', fontWeight: 800 }}>Tout voir</Link>
-        </div>
-        <div className="grid-cards">
-          {topCategories.map((cat) => (
-            <button
-              key={cat.id}
-              type="button"
-              className="card"
-              style={{ padding: 16, textAlign: 'left', background: '#fff' }}
-              onClick={() => {
-                if (isVisitor && !canVisitorAccessCategory({ slug: cat.slug })) {
-                  navigate(Routes.LOGIN);
-                  return;
-                }
-                navigate(`${Routes.CATEGORIES}/${cat.slug}`);
-              }}
-            >
-              <strong>{cat.name}</strong>
-              <div className="muted">{cat.quizCount} quiz</div>
-            </button>
-          ))}
-        </div>
+      <HomeActionTiles
+        onTilePress={goToDefisTile}
+        pulseIds={{
+          challenge: (defisDashboard?.activeChallengeCount ?? 0) > 0,
+          tournament: (defisDashboard?.activeTournamentCount ?? 0) > 0,
+          duel: (defisDashboard?.pendingDuelCount ?? 0) > 0,
+        }}
+      />
+
+      <section className="home-section">
+        <HomeSectionTitle
+          title="Top classement"
+          action="Voir complet"
+          onActionPress={() => navigate(Routes.PLAYERS)}
+        />
+        <HomeLeaderboardSection
+          users={leaderboardUsers}
+          onPressAvatar={(userId) => navigate(buildUserProfileHref(userId))}
+        />
       </section>
 
-      <section className="card" style={{ padding: 18 }}>
-        <h2 style={{ marginTop: 0 }}>Savoir du jour</h2>
-        {INSIGHTS.map((item) => (
-          <article key={item.title} style={{ marginBottom: 14 }}>
-            <span style={{ color: '#E8431A', fontWeight: 800, fontSize: 12 }}>{item.tag}</span>
-            <h3 style={{ margin: '4px 0' }}>{item.title}</h3>
-            <p className="muted" style={{ margin: 0 }}>{item.body}</p>
-          </article>
-        ))}
+      <section className="home-section">
+        <HomeSectionTitle title="Voir mes récompenses" />
+        <HomeRewardsSection />
       </section>
 
-      <section className="card" style={{ padding: 18 }}>
-        <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-          <h2 style={{ marginTop: 0 }}>Classement</h2>
-          <Link to={Routes.SCOREBOARD} style={{ color: '#E8431A', fontWeight: 800 }}>Voir</Link>
-        </div>
-        {leaderboard.map((row) => (
-          <Link key={row.id} to={buildUserProfileHref(row.id)} style={{ display: 'flex', justifyContent: 'space-between', padding: '8px 0', fontWeight: 700 }}>
-            <span>#{row.rank} {row.displayName}</span>
-            <span>{row.score} pts</span>
-          </Link>
-        ))}
-      </section>
+      <HomeNotificationsSheet
+        visible={notificationsVisible}
+        loading={notificationsLoading}
+        items={notifications}
+        unreadCount={unreadCount}
+        actionId={notificationActionId}
+        onClose={() => setNotificationsVisible(false)}
+        onMarkAllRead={() => void markAllRead()}
+        onPressItem={(item) => void handleNotificationPress(item)}
+        onDeleteRequest={requestDelete}
+        onAcceptFriend={(id) => void acceptFriend(id)}
+        onRejectFriend={(id) => void rejectFriend(id)}
+        onAcceptDuel={(item) => void onAcceptDuelNotification(item)}
+        onRejectDuel={(item) => void onRejectDuelNotification(item)}
+        onSeeAll={() => {
+          setNotificationsVisible(false);
+          navigate(Routes.SETTINGS_NOTIFICATIONS);
+        }}
+      />
+      <NotificationMessageModal item={messageItem} onClose={closeMessage} />
+      <NotificationDeleteConfirmModal
+        item={deleteTarget}
+        busy={deleteBusy}
+        onCancel={cancelDelete}
+        onConfirm={() => void confirmDelete()}
+      />
+      <HomeSettingsDrawer
+        visible={settingsDrawerVisible}
+        onClose={() => setSettingsDrawerVisible(false)}
+        isVisitor={isVisitor}
+      />
     </div>
   );
 }

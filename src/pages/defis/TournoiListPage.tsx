@@ -1,81 +1,65 @@
-import { Link, useNavigate, useParams } from 'react-router-dom';
+import { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
+
+import { CompetitionListCard } from '@components/ui/defis/CompetitionListCard';
+import { DefisNavbar } from '@components/ui/defis/DefisNavbar';
+import { DefisStateViews } from '@components/ui/defis/DefisStateViews';
+import { DefisTabSwitcher } from '@components/ui/defis/DefisTabSwitcher';
 import { DefisRoutes } from '@constants/defisRoutes';
 import { useAuthMe } from '@hooks/useAuthMe';
 import {
-  fetchCompetitionById,
   fetchCompetitionsByTab,
-  registerForCompetition,
-  unregisterFromCompetition,
+  type CompetitionTab,
 } from '@services/defis/competitionRepository';
-import { Icon } from '@components/ui/Icon';
+
+const TABS: Array<{ id: CompetitionTab; label: string }> = [
+  { id: 'inscriptions', label: 'Inscriptions' },
+  { id: 'en_cours', label: 'En cours' },
+  { id: 'fin', label: 'Terminés' },
+];
 
 export function TournoiListPage() {
+  const navigate = useNavigate();
   const { data: me } = useAuthMe();
-  const { data, isLoading } = useQuery({
-    queryKey: ['competitions', 'en_cours', me?.user?.id],
-    queryFn: () => fetchCompetitionsByTab('en_cours', me!.user.id),
+  const [tab, setTab] = useState<CompetitionTab>('inscriptions');
+  const { data, isLoading, error, refetch } = useQuery({
+    queryKey: ['competitions', tab, me?.user?.id],
+    queryFn: () => fetchCompetitionsByTab(tab, me!.user.id),
     enabled: Boolean(me?.user?.id),
   });
 
   return (
-    <div>
-      <h1>Tournois</h1>
-      {isLoading ? <p>Chargement…</p> : null}
-      {(data ?? []).map((item) => (
-        <Link key={item.id} to={DefisRoutes.tournoiDetail(item.id)} className="card" style={{ padding: 16, display: 'block', marginBottom: 10 }}>
-          <strong>{item.title}</strong>
-          <div className="muted">{item.status} · {item.registeredCount} inscrits</div>
-        </Link>
-      ))}
-    </div>
-  );
-}
-
-export function TournoiDetailPage() {
-  const { id } = useParams();
-  const navigate = useNavigate();
-  const { data: me } = useAuthMe();
-  const { data, isLoading } = useQuery({
-    queryKey: ['competition', id, me?.user?.id],
-    queryFn: () => fetchCompetitionById(id!, me!.user.id),
-    enabled: Boolean(id && me?.user?.id),
-  });
-
-  return (
-    <div>
-      <button type="button" className="btn btn-ghost" onClick={() => navigate(DefisRoutes.tournoiList)}>
-        <Icon name="chevron-left" /> Tournois
-      </button>
-      <h1>{data?.title ?? 'Tournoi'}</h1>
-      {isLoading ? <p>Chargement…</p> : null}
-      <p className="muted">{data?.description}</p>
-      {data && me?.user?.id ? (
-        data.isRegistered ? (
-          <button type="button" className="btn btn-ghost" onClick={() => void unregisterFromCompetition(me.user.id, data.id)}>
-            Se désinscrire
-          </button>
-        ) : (
-          <button type="button" className="btn btn-primary" onClick={() => void registerForCompetition(me.user.id, data.id)}>
-            S’inscrire
-          </button>
-        )
+    <div className="defis-page">
+      <DefisNavbar title="Tournoi" onBack={() => navigate(DefisRoutes.hub)} />
+      <section className="defis-arena defis-fade">
+        <p style={{ margin: 0, fontSize: 22 }}>🏆</p>
+        <h2>Arène des tournois</h2>
+        <p style={{ margin: 0, color: 'rgba(255,255,255,0.78)', fontWeight: 600 }}>
+          Affrontez la communauté · Brackets · Récompenses
+        </p>
+      </section>
+      <DefisTabSwitcher tabs={TABS} value={tab} onChange={setTab} />
+      {isLoading ? <DefisStateViews loading /> : null}
+      {error ? (
+        <DefisStateViews
+          error={error instanceof Error ? error : 'Impossible de charger les tournois.'}
+          onRetry={() => void refetch()}
+        />
       ) : null}
-      {id ? (
-        <Link to={DefisRoutes.tournoiBracket(id)} className="btn btn-outline" style={{ marginTop: 12, display: 'inline-flex' }}>
-          Voir le bracket
-        </Link>
-      ) : null}
-    </div>
-  );
-}
-
-export function TournoiBracketPage() {
-  const { id } = useParams();
-  return (
-    <div>
-      <h1>Bracket</h1>
-      <p className="muted">Tournoi {id} — le tableau se mettra à jour au fil des matchs.</p>
+      {!isLoading && !error && (data?.length ?? 0) === 0 ? (
+        <DefisStateViews empty="Aucun tournoi dans cet onglet." />
+      ) : (
+        <div className="defis-cards is-grid">
+          {(data ?? []).map((item) => (
+            <CompetitionListCard
+              key={item.id}
+              competition={item}
+              onPress={() => navigate(DefisRoutes.tournoiDetail(item.id))}
+            />
+          ))}
+        </div>
+      )}
     </div>
   );
 }

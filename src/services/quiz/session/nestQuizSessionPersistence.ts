@@ -4,8 +4,10 @@ import { apiClient } from '@services/api/apiClient';
 import { loadAuthMe, patchAuthMeFromQuizComplete } from '@services/auth/authMeRepository';
 import { refreshAuthSessionIfNeeded } from '@services/auth/refreshAuthSession';
 import type { IQuizSessionPersistence } from '@services/quiz/session/IQuizSessionPersistence';
-import { enqueueApiMutation, runOnlineOrQueue } from '@services/offline/offlineMutation';
+import { enqueueApiMutation } from '@services/offline/offlineMutation';
+import { fetchNetworkOnline } from '@services/offline/networkStatus';
 import {
+  parseQuizCompleteResponse,
   quizCompleteApiPath,
   type QuizSessionCompleteBody,
   type QuizSessionCompleteResponse,
@@ -31,34 +33,29 @@ export class NestQuizSessionPersistence implements IQuizSessionPersistence {
       return { ok: false, errorMessage: 'Utilisateur non connecté (session invalide).' };
     }
 
+    const online = await fetchNetworkOnline();
     const refreshed = await refreshAuthSessionIfNeeded();
     if (!refreshed.ok && refreshed.reason === 'refresh_failed') {
-      try {
+      if (!online) {
         await this.queueOffline(params);
         return { ok: true };
-      } catch {
-        return {
-          ok: false,
-          errorMessage: 'Session expirée. Reconnectez-vous pour enregistrer votre score.',
-        };
       }
+      return {
+        ok: false,
+        errorMessage: 'Session expirée. Reconnectez-vous pour enregistrer votre score.',
+      };
+    }
+
+    if (!online) {
+      await this.queueOffline(params);
+      return { ok: true };
     }
 
     try {
-      const result = await runOnlineOrQueue(
-        () => this.persistOnline(params),
-        () => this.queueOffline(params),
-      );
-      if (result.queued) return { ok: true };
-      return result.data ?? { ok: false, errorMessage: 'Enregistrement impossible.' };
+      return await this.persistOnline(params);
     } catch (error) {
-      try {
-        await this.queueOffline(params);
-        return { ok: true };
-      } catch {
-        const message = error instanceof Error ? error.message : 'Enregistrement impossible.';
-        return { ok: false, errorMessage: message };
-      }
+      const message = error instanceof Error ? error.message : 'Enregistrement impossible.';
+      return { ok: false, errorMessage: message };
     }
   }
 
@@ -82,17 +79,17 @@ export class NestQuizSessionPersistence implements IQuizSessionPersistence {
 
     try {
       const { data } = await apiClient.post<QuizSessionCompleteResponse>(path, body);
-      if (data) {
-        await patchAuthMeFromQuizComplete({
-          total_score: data.total_score,
-          quizzes_completed: data.quizzes_completed,
-        });
+      const parsed = parseQuizCompleteResponse(data);
+      if (parsed) {
+        await patchAuthMeFromQuizComplete(parsed);
       }
-      void loadAuthMe({ force: true });
+      const remote = await loadAuthMe({ force: true });
+      if (parsed && (remote?.profile?.total_score ?? 0) < parsed.total_score) {
+        await patchAuthMeFromQuizComplete(parsed);
+      }
       return { ok: true };
     } catch (error) {
-      const message = this.formatApiError(error);
-      throw new Error(message);
+      throw new Error(this.formatApiError(error));
     }
   }
 

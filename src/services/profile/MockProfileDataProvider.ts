@@ -40,6 +40,7 @@ export class MockProfileDataProvider implements IProfileDataProvider {
       quizzes: [
         {
           id: 'q1',
+          quizId: 'q1',
           title: 'Back to School Quiz Game',
           thumbnailUri:
             'https://images.unsplash.com/photo-1503676260728-1c00da094a0b?w=400&q=80',
@@ -50,6 +51,7 @@ export class MockProfileDataProvider implements IProfileDataProvider {
         },
         {
           id: 'q2',
+          quizId: 'q2',
           title: 'Science Trivia Night',
           thumbnailUri:
             'https://images.unsplash.com/photo-1532094349884-543bc11b234d?w=400&q=80',
@@ -60,6 +62,7 @@ export class MockProfileDataProvider implements IProfileDataProvider {
         },
         {
           id: 'q3',
+          quizId: 'q3',
           title: 'Weekend Fun Quiz',
           thumbnailUri:
             'https://images.unsplash.com/photo-1516321497487-e288fb19713f?w=400&q=80',

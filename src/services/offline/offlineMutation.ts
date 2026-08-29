@@ -29,6 +29,7 @@ export async function enqueueApiMutation(input: {
     url: input.path,
     body: input.body,
   });
+  await updateOfflinePendingCount();
 }
 
 export async function enqueueSupabaseMutation(input: {
