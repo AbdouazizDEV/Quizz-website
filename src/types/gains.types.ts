@@ -18,6 +18,7 @@ export interface GainsCashPrize {
 export interface GainsRewardCatalogItem {
   id: string;
   title: string;
+  description: string;
   costPoints: number;
   category: string;
   available: boolean;

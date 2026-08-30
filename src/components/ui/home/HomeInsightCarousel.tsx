@@ -35,7 +35,7 @@ export function HomeInsightCarousel({
   }, [activeIndex, carouselRef]);
 
   return (
-    <div>
+    <div className="home-insight-carousel">
       <div
         ref={carouselRef}
         className="home-insight-track"

@@ -39,7 +39,7 @@ export function ChallengeDetailPage() {
   );
 
   return (
-    <div className="defis-page">
+    <div className="defis-page challenge-detail-page">
       <DefisNavbar title="Challenge" onBack={onBack} />
       {!isOnline ? (
         <p className="defis-muted">Hors ligne — affichage depuis le cache local si disponible.</p>
@@ -52,24 +52,28 @@ export function ChallengeDetailPage() {
         />
       ) : null}
       {data ? (
-        <>
-          <ChallengeCompetitionHero progress={data} />
-          <h2 className="home-section-title">Missions quiz</h2>
-          <div className="defis-cards">
-            {data.dailyQuizzes.map((quiz) => (
-              <ChallengeMissionRow
-                key={quiz.quizId}
-                quiz={quiz}
-                onPress={() => void playQuiz(quiz.quizId, quiz.scheduledDay)}
-              />
-            ))}
+        <div className="challenge-detail-board">
+          <div className="challenge-detail-hero-col">
+            <ChallengeCompetitionHero progress={data} />
+            {id ? (
+              <Link to={DefisRoutes.challengeLeaderboard(id)} className="defis-cta defis-cta-navy">
+                Voir le classement
+              </Link>
+            ) : null}
           </div>
-          {id ? (
-            <Link to={DefisRoutes.challengeLeaderboard(id)} className="defis-cta defis-cta-navy">
-              Voir le classement
-            </Link>
-          ) : null}
-        </>
+          <section className="challenge-detail-missions">
+            <h2 className="home-section-title">Missions quiz</h2>
+            <div className="defis-cards">
+              {data.dailyQuizzes.map((quiz) => (
+                <ChallengeMissionRow
+                  key={quiz.quizId}
+                  quiz={quiz}
+                  onPress={() => void playQuiz(quiz.quizId, quiz.scheduledDay)}
+                />
+              ))}
+            </div>
+          </section>
+        </div>
       ) : null}
     </div>
   );

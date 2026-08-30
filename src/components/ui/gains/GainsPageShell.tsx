@@ -29,7 +29,9 @@ export function GainsPageShell({ title, showBack = false, children }: GainsPageS
           <span className="profile-icon-btn" />
         </header>
       ) : (
-        <h1 className="gains-hub-title">{title}</h1>
+        <div className="gains-hub-title-wrap">
+          <h1 className="gains-hub-title">{title}</h1>
+        </div>
       )}
       {children}
     </div>

@@ -1,5 +1,6 @@
 import { GainsPageShell } from '@components/ui/gains/GainsPageShell';
 import { GainsStreakBonuses } from '@components/ui/gains/GainsStreakBonuses';
+import { Icon } from '@components/ui/Icon';
 import { GAINS_HISTORY_DEMO } from '@constants/gainsContent';
 import { useAuthMe } from '@hooks/useAuthMe';
 import { useGainsHubData } from '@hooks/useGainsHubData';
@@ -7,48 +8,64 @@ import { useGainsHubData } from '@hooks/useGainsHubData';
 export function GainsMyPage() {
   const { data: me } = useAuthMe();
   const { data } = useGainsHubData();
-  const points = me?.profile?.total_score ?? data?.totalPoints ?? 0;
+  const points = me?.profile?.total_score ?? 0;
+  const streak = data?.streakDays ?? me?.profile?.streak_days ?? 0;
   const history = data?.historyPreview?.length ? data.historyPreview : GAINS_HISTORY_DEMO;
 
   return (
     <GainsPageShell title="Mes gains" showBack>
-      <div className="gains-stats3">
-        <div className="gains-stat">
-          <b>{points.toLocaleString('fr-FR')}</b>
-          <span>Points</span>
+      <div className="gains-sub-board gains-my-board">
+        <div className="gains-stats3 gains-fade">
+          <div className="gains-stat">
+            <b>{points.toLocaleString('fr-FR')}</b>
+            <span>Points</span>
+          </div>
+          <div className="gains-stat">
+            <b>2</b>
+            <span>Récompenses</span>
+          </div>
+          <div className="gains-stat">
+            <b>3</b>
+            <span>Offres</span>
+          </div>
         </div>
-        <div className="gains-stat">
-          <b>{data?.rewardsOwned ?? 2}</b>
-          <span>Récompenses</span>
-        </div>
-        <div className="gains-stat">
-          <b>{data?.offersCount ?? 3}</b>
-          <span>Offres</span>
-        </div>
-      </div>
-      <GainsStreakBonuses streakDays={data?.streakDays ?? me?.profile?.streak_days ?? 0} />
-      <div className="gains-history-grid">
-        {history.map((item) => (
-          <article key={item.id} className="gains-reward">
-            <div>
-              <strong>{item.title}</strong>
-              <p className="gains-footnote">
-                {item.subtitle} · {item.whenLabel}
-              </p>
+
+        <div className="gains-my-split">
+          <GainsStreakBonuses streakDays={streak} />
+
+          <section className="gains-history-card gains-fade" style={{ animationDelay: '120ms' }}>
+            <div className="gains-history-head">
+              <Icon name="bookmark" size={16} color="#1F2347" />
+              <h2>Historique</h2>
             </div>
-            {item.pointsDelta != null ? (
-              <span
-                className={
-                  item.pointsDelta >= 0 ? 'gains-history-delta is-pos' : 'gains-history-delta is-neg'
-                }
+            {history.map((item, index) => (
+              <article
+                key={item.id}
+                className="gains-history-row gains-fade"
+                style={{ animationDelay: `${160 + index * 60}ms` }}
               >
-                {item.pointsDelta > 0 ? `+${item.pointsDelta}` : item.pointsDelta} pts
-              </span>
-            ) : null}
-          </article>
-        ))}
+                <div>
+                  <strong>{item.title}</strong>
+                  <p>
+                    {item.subtitle} · {item.whenLabel}
+                  </p>
+                </div>
+                {typeof item.pointsDelta === 'number' ? (
+                  <span
+                    className={
+                      item.pointsDelta >= 0 ? 'gains-history-delta is-pos' : 'gains-history-delta is-neg'
+                    }
+                  >
+                    {item.pointsDelta >= 0 ? `+${item.pointsDelta}` : item.pointsDelta} pts
+                  </span>
+                ) : null}
+              </article>
+            ))}
+          </section>
+        </div>
       </div>
-      <p className="gains-footnote">Selon le classement officiel Quizz+.</p>
+
+      <p className="gains-prizes-footnote">Selon le classement officiel Quizz+.</p>
     </GainsPageShell>
   );
 }

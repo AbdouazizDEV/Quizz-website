@@ -80,34 +80,43 @@ export function CategoryDetailPage() {
   if (!data) return null;
 
   return (
-    <div className="cat-page is-detail">
+    <div className="cat-page is-detail cat-detail-page">
       <StatisticsNavbar title={data.category.name} onBack={onBack} onSearch={onSearch} />
-      <img className="cat-hero" src={coverUri} alt="" />
-      <div className="cat-quiz-wrap">
-        <ProfileQuizzListHeader
-          title={`${data.category.quizCount} Quizz`}
-          sortLabel={sortLabel}
-          onPressSort={() => setSort((prev) => (prev === 'default' ? 'newest' : 'default'))}
-        />
-        <div className="cat-quiz-list">
-          {data.quizzes.length === 0 ? (
-            <p className="cat-empty">Aucun quiz publié dans cette catégorie pour le moment.</p>
-          ) : (
-            data.quizzes.map((quiz) => (
-              <CategoryQuizRow
-                key={quiz.id}
-                item={quiz}
-                fallbackThumbnailUri={coverUri}
-                lockedForVisitor={lacksAuthToken(token) && isQuizDifficultyDefined(quiz.difficultyLevel)}
-                completedByPlayer={quiz.isCompletedByPlayer}
-                onPress={
-                  quiz.isCompletedByPlayer
-                    ? undefined
-                    : () => onPressQuiz(quiz.id, quiz.difficultyLevel, quiz.isCompletedByPlayer)
-                }
-              />
-            ))
-          )}
+      <div className="cat-detail-board">
+        <div className="cat-detail-hero-col">
+          <img className="cat-hero" src={coverUri} alt="" />
+          <p className="cat-detail-lead">
+            Explorez les quiz de cette catégorie et grimpez dans le classement.
+          </p>
+        </div>
+        <div className="cat-quiz-wrap">
+          <ProfileQuizzListHeader
+            title={`${data.category.quizCount} Quizz`}
+            sortLabel={sortLabel}
+            onPressSort={() => setSort((prev) => (prev === 'default' ? 'newest' : 'default'))}
+          />
+          <div className="cat-quiz-list">
+            {data.quizzes.length === 0 ? (
+              <p className="cat-empty">Aucun quiz publié dans cette catégorie pour le moment.</p>
+            ) : (
+              data.quizzes.map((quiz) => (
+                <CategoryQuizRow
+                  key={quiz.id}
+                  item={quiz}
+                  fallbackThumbnailUri={coverUri}
+                  lockedForVisitor={
+                    lacksAuthToken(token) && isQuizDifficultyDefined(quiz.difficultyLevel)
+                  }
+                  completedByPlayer={quiz.isCompletedByPlayer}
+                  onPress={
+                    quiz.isCompletedByPlayer
+                      ? undefined
+                      : () => onPressQuiz(quiz.id, quiz.difficultyLevel, quiz.isCompletedByPlayer)
+                  }
+                />
+              ))
+            )}
+          </div>
         </div>
       </div>
     </div>

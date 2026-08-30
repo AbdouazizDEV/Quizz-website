@@ -1,7 +1,5 @@
-import { ProfileTheme } from '@constants/profileTheme';
-
 export const SettingsScreenTheme = {
-  ...ProfileTheme,
+  grey900: '#212121',
   premiumBorder: '#543ACC',
   premiumGradient: ['#FFB703', '#FFC933'] as const,
   pagePaddingTop: 16,
@@ -10,7 +8,10 @@ export const SettingsScreenTheme = {
   bodyGap: 24,
   rowHeight: 56,
   rowIconGap: 20,
+  contentMaxWidth: 382,
   premiumCardMinHeight: 170,
   premiumRadius: 20,
   premiumBorderBottom: 6,
+  navbarGap: 16,
+  navbarPaddingV: 12,
 } as const;

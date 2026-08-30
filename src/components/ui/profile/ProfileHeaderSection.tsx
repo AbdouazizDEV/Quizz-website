@@ -1,83 +1,84 @@
-import type { ProfileStatItem, ProfileUserIdentity, ViewerRelationship } from '@app-types/profile.types';
-import { Icon } from '@components/ui/Icon';
+import type { ProfileStatItem } from '@app-types/profile.types';
+import { ProfileCoverBanner } from '@components/ui/profile/ProfileCoverBanner';
+import { ProfileIdentityRow } from '@components/ui/profile/ProfileIdentityRow';
+import { ProfileInsightsCarousel } from '@components/ui/profile/ProfileInsightsCarousel';
+import { ProfileStatsGrid } from '@components/ui/profile/ProfileStatsGrid';
+import { getLevelProgressDetail, type LevelProgressDetail } from '@utils/levelDisplay';
 
 interface ProfileHeaderSectionProps {
-  identity: ProfileUserIdentity;
+  coverUri: string;
+  displayName: string;
+  handle: string;
+  avatarUri: string;
   stats: ProfileStatItem[];
-  isSelf: boolean;
-  followBusy?: boolean;
-  onPressCover: () => void;
-  onPressAvatar: () => void;
-  onPressIdentityCta: () => void;
-}
-
-function ctaLabel(relationship: ViewerRelationship, gender: ProfileUserIdentity['gender']): string {
-  if (relationship === 'self') return 'modifier le profil';
-  if (relationship === 'pending') return 'En attente';
-  if (relationship === 'friends') return gender === 'female' ? 'Amie' : 'Ami';
-  return 'Suivre';
+  onEditProfile: () => void;
+  onPressChangeCover: () => void;
+  onPressAvatar?: () => void;
+  identityActionLabel?: string;
+  identityActionVariant?: 'primary' | 'pending' | 'friend';
+  identityActionDisabled?: boolean;
+  showInsightsCarousel?: boolean;
+  progressDetail?: LevelProgressDetail | null;
+  quizzesCompleted?: number;
+  streakDays?: number;
+  isPremium?: boolean;
+  premiumDaysLeft?: number;
+  coverEditable?: boolean;
 }
 
 export function ProfileHeaderSection({
-  identity,
+  coverUri,
+  displayName,
+  handle,
+  avatarUri,
   stats,
-  isSelf,
-  followBusy,
-  onPressCover,
+  onEditProfile,
+  onPressChangeCover,
   onPressAvatar,
-  onPressIdentityCta,
+  identityActionLabel,
+  identityActionVariant,
+  identityActionDisabled,
+  showInsightsCarousel = false,
+  progressDetail = null,
+  quizzesCompleted = 0,
+  streakDays = 0,
+  isPremium = false,
+  premiumDaysLeft = 0,
+  coverEditable = true,
 }: ProfileHeaderSectionProps) {
-  const disabled =
-    !isSelf && (identity.viewerRelationship === 'pending' || identity.viewerRelationship === 'friends');
+  const resolvedProgress = progressDetail ?? getLevelProgressDetail(0);
 
   return (
-    <div className="profile-stage">
-      <button
-        type="button"
-        className="profile-cover"
-        onClick={isSelf ? onPressCover : undefined}
-        disabled={!isSelf}
-        aria-label={isSelf ? 'Changer la photo de couverture' : 'Couverture'}
-      >
-        <img src={identity.coverUri} alt="" />
-        {isSelf ? (
-          <span className="profile-cover-edit">
-            <Icon name="camera" size={16} color="#FFFFFF" />
-          </span>
-        ) : null}
-      </button>
-      <div className="profile-header">
-        <button
-          type="button"
-          className="profile-avatar-wrap"
-          onClick={isSelf ? onPressAvatar : undefined}
-          disabled={!isSelf}
-          aria-label={isSelf ? 'Changer l’avatar' : identity.displayName}
-        >
-          <img src={identity.avatarUri} alt="" />
-        </button>
-        <div className="profile-identity">
-          <div>
-            <h2 className="profile-name">{identity.displayName}</h2>
-            <p className="profile-handle">{identity.handle}</p>
-          </div>
-          <button
-            type="button"
-            className="profile-follow"
-            disabled={disabled || followBusy}
-            onClick={onPressIdentityCta}
-          >
-            {ctaLabel(isSelf ? 'self' : identity.viewerRelationship, identity.gender)}
-          </button>
-        </div>
-        <div className="profile-stats">
-          {stats.map((stat) => (
-            <div key={stat.id} className="profile-stat">
-              <b>{stat.valueLabel}</b>
-              <span>{stat.caption}</span>
-            </div>
-          ))}
-        </div>
+    <div className="profile-header-block">
+      <ProfileCoverBanner
+        coverUri={coverUri}
+        editable={coverEditable}
+        onPressChangeCover={onPressChangeCover}
+      />
+      <div className="profile-header-inner">
+        <ProfileIdentityRow
+          displayName={displayName}
+          handle={handle}
+          avatarUri={avatarUri}
+          onEditProfile={onEditProfile}
+          onPressAvatar={onPressAvatar}
+          actionLabel={identityActionLabel}
+          actionVariant={identityActionVariant}
+          actionDisabled={identityActionDisabled}
+        />
+        <hr className="profile-header-divider" />
+        {showInsightsCarousel ? (
+          <ProfileInsightsCarousel
+            progress={resolvedProgress}
+            stats={stats}
+            quizzesCompleted={quizzesCompleted}
+            streakDays={streakDays}
+            isPremium={isPremium}
+            premiumDaysLeft={premiumDaysLeft}
+          />
+        ) : (
+          <ProfileStatsGrid stats={stats} />
+        )}
       </div>
     </div>
   );

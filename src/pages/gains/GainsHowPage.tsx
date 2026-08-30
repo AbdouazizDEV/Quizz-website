@@ -6,28 +6,34 @@ import { GAINS_HOW_STEPS } from '@constants/gainsContent';
 export function GainsHowPage() {
   return (
     <GainsPageShell title="Comment gagner" showBack>
-      <section className="gains-hero-navy">
-        <h2 style={{ margin: 0, fontSize: 22 }}>Joue stratégiquement</h2>
-        <p style={{ margin: '8px 0 0', fontWeight: 600, color: 'rgba(255,255,255,0.82)' }}>
-          Enchaîne Quiz Express, vise les défis et duels, puis garde ta série pour cumuler plus de
-          points.
-        </p>
-      </section>
-      <GainsExpressCta />
-      <div className="gains-step-grid">
-        {GAINS_HOW_STEPS.map((step) => (
-          <article key={step.id} className="gains-step">
-            <span className="gains-nav-icon" style={{ background: '#FFB703' }}>
-              <Icon name={step.icon} size={20} color="#1A1A2E" />
-            </span>
-            <div>
-              <h3 style={{ margin: 0 }}>{step.title}</h3>
-              <p className="gains-footnote" style={{ marginTop: 4 }}>
-                {step.body}
-              </p>
-            </div>
-          </article>
-        ))}
+      <div className="gains-sub-board gains-how-board">
+        <div className="gains-sub-primary">
+          <section className="gains-how-hero gains-fade">
+            <h2>Joue stratégiquement</h2>
+            <p>Combine Quiz Express, défis et série pour maximiser tes points et viser le cash.</p>
+          </section>
+          <GainsExpressCta />
+        </div>
+
+        <div className="gains-how-list">
+          {GAINS_HOW_STEPS.map((step, index) => (
+            <article
+              key={step.id}
+              className="gains-how-step gains-fade"
+              style={{ animationDelay: `${80 + index * 70}ms` }}
+            >
+              <span className="gains-how-step-icon">
+                <Icon name={step.icon} size={18} color="#1F2347" />
+              </span>
+              <div className="gains-how-step-copy">
+                <h3>
+                  {index + 1}. {step.title}
+                </h3>
+                <p>{step.body}</p>
+              </div>
+            </article>
+          ))}
+        </div>
       </div>
     </GainsPageShell>
   );

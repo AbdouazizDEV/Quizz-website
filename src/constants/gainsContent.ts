@@ -111,6 +111,7 @@ export const GAINS_REWARD_CATALOG: GainsRewardCatalogItem[] = [
   {
     id: 'r1',
     title: 'Bon d’achat 5 000 FCFA',
+    description: 'À utiliser chez les partenaires Quizz+ pour tes achats du quotidien.',
     costPoints: 800,
     category: 'Bons d’achat',
     available: true,
@@ -118,6 +119,7 @@ export const GAINS_REWARD_CATALOG: GainsRewardCatalogItem[] = [
   {
     id: 'r2',
     title: 'Réduction librairie -15 %',
+    description: 'Remise sur tes prochains livres et manuels chez un libraire partenaire.',
     costPoints: 350,
     category: 'Réductions',
     available: true,
@@ -125,6 +127,7 @@ export const GAINS_REWARD_CATALOG: GainsRewardCatalogItem[] = [
   {
     id: 'r3',
     title: 'Ebook culture générale',
+    description: 'Un ebook pour réviser et progresser entre deux quiz Express.',
     costPoints: 220,
     category: 'Livres',
     available: true,
@@ -132,6 +135,7 @@ export const GAINS_REWARD_CATALOG: GainsRewardCatalogItem[] = [
   {
     id: 'r4',
     title: 'Casque Quizz+ (partenaire)',
+    description: 'Accessoire partenaire — stock limité, échange bientôt ouvert.',
     costPoints: 2_500,
     category: 'Accessoires',
     available: false,
@@ -139,6 +143,7 @@ export const GAINS_REWARD_CATALOG: GainsRewardCatalogItem[] = [
   {
     id: 'r5',
     title: 'Crédit data 2 Go',
+    description: 'Forfait data à activer pour jouer et réviser même en déplacement.',
     costPoints: 600,
     category: 'Produits tech',
     available: true,
@@ -146,6 +151,7 @@ export const GAINS_REWARD_CATALOG: GainsRewardCatalogItem[] = [
   {
     id: 'r6',
     title: 'Cours tutorat 1h',
+    description: 'Une heure avec un tuteur pour préparer tes prochains défis.',
     costPoints: 1_200,
     category: 'Services éducatifs',
     available: true,
@@ -167,19 +173,19 @@ export const GAINS_HOW_STEPS: GainsHowStep[] = [
   },
   {
     id: 'h2',
-    icon: 'flag',
+    icon: 'users',
     title: 'Défis & duels',
     body: 'Les défis hebdo et duels rapportent plus : vise les bonus de classement.',
   },
   {
     id: 'h3',
-    icon: 'trending-up',
+    icon: 'award',
     title: 'Monte au classement',
     body: 'Chaque semaine repart : concentre-toi sur le Top 10 pour maximiser tes chances cash.',
   },
   {
     id: 'h4',
-    icon: 'activity',
+    icon: 'flame',
     title: 'Garde ta série',
     body: '3, 7, 14 puis 30 jours débloquent des bonus points automatiques.',
   },

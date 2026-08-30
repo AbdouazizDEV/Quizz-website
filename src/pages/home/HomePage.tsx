@@ -215,9 +215,12 @@ export function HomePage() {
   );
 
   useEffect(() => {
-    const timer = window.setInterval(() => {
+    const mq = window.matchMedia('(min-width: 768px)');
+    const tick = () => {
+      if (mq.matches) return;
       setActiveInsight((prev) => (prev + 1) % INSIGHTS.length);
-    }, 4200);
+    };
+    const timer = window.setInterval(tick, 4200);
     return () => window.clearInterval(timer);
   }, []);
 
@@ -304,55 +307,59 @@ export function HomePage() {
         onPressAvatar={() => navigate(Routes.PROFILE)}
       />
 
-      <section className="home-section">
-        <HomeSectionTitle title="Le savoir du jour" />
-        <HomeInsightCarousel
-          insights={INSIGHTS}
-          activeIndex={activeInsight}
-          onChangeIndex={setActiveInsight}
-          carouselRef={carouselRef}
-        />
-      </section>
+      <div className="home-board">
+        <section className="home-section home-board-insights">
+          <HomeSectionTitle title="Le savoir du jour" />
+          <HomeInsightCarousel
+            insights={INSIGHTS}
+            activeIndex={activeInsight}
+            onChangeIndex={setActiveInsight}
+            carouselRef={carouselRef}
+          />
+        </section>
 
-      <section className="home-section">
-        <HomeSectionTitle
-          title="Quizz du jour"
-          action="Voir tout"
-          onActionPress={() => navigate(Routes.CATEGORIES)}
-        />
-        <HomeDailyCategoriesSection
-          categories={topThreeCategories}
-          loading={categoriesLoading}
-          error={categoriesError}
-          onPressCategory={goToCategory}
-        />
-      </section>
+        <section className="home-section home-board-categories">
+          <HomeSectionTitle
+            title="Quizz du jour"
+            action="Voir tout"
+            onActionPress={() => navigate(Routes.CATEGORIES)}
+          />
+          <HomeDailyCategoriesSection
+            categories={topThreeCategories}
+            loading={categoriesLoading}
+            error={categoriesError}
+            onPressCategory={goToCategory}
+          />
+        </section>
 
-      <HomeActionTiles
-        onTilePress={goToDefisTile}
-        pulseIds={{
-          challenge: (defisDashboard?.activeChallengeCount ?? 0) > 0,
-          tournament: (defisDashboard?.activeTournamentCount ?? 0) > 0,
-          duel: (defisDashboard?.pendingDuelCount ?? 0) > 0,
-        }}
-      />
+        <div className="home-board-tiles">
+          <HomeActionTiles
+            onTilePress={goToDefisTile}
+            pulseIds={{
+              challenge: (defisDashboard?.activeChallengeCount ?? 0) > 0,
+              tournament: (defisDashboard?.activeTournamentCount ?? 0) > 0,
+              duel: (defisDashboard?.pendingDuelCount ?? 0) > 0,
+            }}
+          />
+        </div>
 
-      <section className="home-section">
-        <HomeSectionTitle
-          title="Top classement"
-          action="Voir complet"
-          onActionPress={() => navigate(Routes.PLAYERS)}
-        />
-        <HomeLeaderboardSection
-          users={leaderboardUsers}
-          onPressAvatar={(userId) => navigate(buildUserProfileHref(userId))}
-        />
-      </section>
+        <section className="home-section home-board-rank">
+          <HomeSectionTitle
+            title="Top classement"
+            action="Voir complet"
+            onActionPress={() => navigate(Routes.PLAYERS)}
+          />
+          <HomeLeaderboardSection
+            users={leaderboardUsers}
+            onPressAvatar={(userId) => navigate(buildUserProfileHref(userId))}
+          />
+        </section>
 
-      <section className="home-section">
-        <HomeSectionTitle title="Voir mes récompenses" />
-        <HomeRewardsSection />
-      </section>
+        <section className="home-section home-board-rewards">
+          <HomeSectionTitle title="Voir mes récompenses" />
+          <HomeRewardsSection />
+        </section>
+      </div>
 
       <HomeNotificationsSheet
         visible={notificationsVisible}

@@ -1,17 +1,20 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 
-import { CompetitionListCard } from '@components/ui/defis/CompetitionListCard';
 import { DefisNavbar } from '@components/ui/defis/DefisNavbar';
-import { DefisStateViews } from '@components/ui/defis/DefisStateViews';
 import { DefisTabSwitcher } from '@components/ui/defis/DefisTabSwitcher';
+import { TOURNOI_TAB_STATUS, TournoiCard } from '@components/ui/defis/TournoiCard';
 import { DefisRoutes } from '@constants/defisRoutes';
 import { useAuthMe } from '@hooks/useAuthMe';
+import { useNetworkStatus } from '@hooks/useNetworkStatus';
+import { useAppError } from '@providers/AppErrorProvider';
 import {
   fetchCompetitionsByTab,
+  registerForCompetition,
   type CompetitionTab,
 } from '@services/defis/competitionRepository';
+import type { CompetitionSummary } from '@app-types/challenge.types';
 
 const TABS: Array<{ id: CompetitionTab; label: string }> = [
   { id: 'inscriptions', label: 'Inscriptions' },
@@ -21,45 +24,96 @@ const TABS: Array<{ id: CompetitionTab; label: string }> = [
 
 export function TournoiListPage() {
   const navigate = useNavigate();
+  const queryClient = useQueryClient();
+  const { showAppError } = useAppError();
   const { data: me } = useAuthMe();
+  const userId = me?.user?.id ?? '';
+  const { isOnline } = useNetworkStatus();
   const [tab, setTab] = useState<CompetitionTab>('inscriptions');
-  const { data, isLoading, error, refetch } = useQuery({
-    queryKey: ['competitions', tab, me?.user?.id],
-    queryFn: () => fetchCompetitionsByTab(tab, me!.user.id),
-    enabled: Boolean(me?.user?.id),
+  const [registeringId, setRegisteringId] = useState<string | null>(null);
+
+  const { data, isLoading, isError, error } = useQuery({
+    queryKey: ['competitions', tab, userId],
+    queryFn: () => fetchCompetitionsByTab(tab, userId),
+    enabled: Boolean(userId),
   });
 
+  const onRegister = async (competition: CompetitionSummary) => {
+    if (!userId || registeringId) return;
+    if (competition.registeredCount >= competition.maxParticipants) {
+      showAppError('Ce tournoi a atteint le nombre maximum de participants.', {
+        title: 'Tournoi complet',
+      });
+      return;
+    }
+    setRegisteringId(competition.id);
+    try {
+      const result = await registerForCompetition(userId, competition.id);
+      await queryClient.invalidateQueries({ queryKey: ['competitions'] });
+      window.alert(
+        result.queued
+          ? '✓ Inscription enregistrée — synchronisation à la reconnexion.'
+          : '✓ Vous êtes inscrit !',
+      );
+    } catch (err) {
+      showAppError(err instanceof Error ? err.message : 'Inscription impossible.', {
+        title: 'Tournoi',
+      });
+    } finally {
+      setRegisteringId(null);
+    }
+  };
+
   return (
-    <div className="defis-page">
-      <DefisNavbar title="Tournoi" onBack={() => navigate(DefisRoutes.hub)} />
-      <section className="defis-arena defis-fade">
-        <p style={{ margin: 0, fontSize: 22 }}>🏆</p>
-        <h2>Arène des tournois</h2>
-        <p style={{ margin: 0, color: 'rgba(255,255,255,0.78)', fontWeight: 600 }}>
-          Affrontez la communauté · Brackets · Récompenses
-        </p>
+    <div className="defis-page defis-page--shell tournoi-list-page">
+      <DefisNavbar title="Tournois" onBack={() => navigate(DefisRoutes.hub)} />
+
+      <section className="defis-arena tournoi-arena defis-fade" aria-label="Arène des tournois">
+        <p className="tournoi-arena-emoji">🏆</p>
+        <h2 className="tournoi-arena-title">Arène des tournois</h2>
+        <p className="tournoi-arena-sub">Affrontez la communauté · Brackets · Récompenses</p>
       </section>
+
       <DefisTabSwitcher tabs={TABS} value={tab} onChange={setTab} />
-      {isLoading ? <DefisStateViews loading /> : null}
-      {error ? (
-        <DefisStateViews
-          error={error instanceof Error ? error : 'Impossible de charger les tournois.'}
-          onRetry={() => void refetch()}
-        />
+
+      {isLoading ? (
+        <div className="tournoi-list-loader" role="status" aria-label="Chargement">
+          <div className="defis-spinner is-primary" />
+        </div>
       ) : null}
-      {!isLoading && !error && (data?.length ?? 0) === 0 ? (
-        <DefisStateViews empty="Aucun tournoi dans cet onglet." />
-      ) : (
-        <div className="defis-cards is-grid">
-          {(data ?? []).map((item) => (
-            <CompetitionListCard
-              key={item.id}
-              competition={item}
-              onPress={() => navigate(DefisRoutes.tournoiDetail(item.id))}
+
+      {!isOnline && (data?.length ?? 0) > 0 ? (
+        <p className="tournoi-offline-hint">
+          Données en cache — reconnectez-vous pour actualiser.
+        </p>
+      ) : null}
+
+      {!isLoading && !isError && (data?.length ?? 0) > 0 ? (
+        <div className="tournoi-list">
+          {(data ?? []).map((competition, index) => (
+            <TournoiCard
+              key={competition.id}
+              competition={competition}
+              index={index}
+              tab={tab}
+              statusLabel={TOURNOI_TAB_STATUS[tab]}
+              registering={registeringId === competition.id}
+              onPress={() => navigate(DefisRoutes.tournoiDetail(competition.id))}
+              onRegister={() => void onRegister(competition)}
             />
           ))}
         </div>
-      )}
+      ) : null}
+
+      {!isLoading && isError ? (
+        <p className="tournoi-list-empty">
+          {error instanceof Error ? error.message : 'Impossible de charger les tournois.'}
+        </p>
+      ) : null}
+
+      {!isLoading && !isError && (data?.length ?? 0) === 0 ? (
+        <p className="tournoi-list-empty">Aucun tournoi dans cette catégorie.</p>
+      ) : null}
     </div>
   );
 }

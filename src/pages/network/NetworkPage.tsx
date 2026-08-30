@@ -1,49 +1,161 @@
-import { Link, useSearchParams } from 'react-router-dom';
-import { QRCodeSVG } from 'qrcode.react';
-import { useAuthMe } from '@hooks/useAuthMe';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useNavigate, useSearchParams } from 'react-router-dom';
+
+import type { ConnectionFilter, ConnectionUser } from '@app-types/network.types';
+import { ConnectionListItem } from '@components/ui/network/ConnectionListItem';
+import { NetworkFilterTabs } from '@components/ui/network/NetworkFilterTabs';
+import { NetworkSearchNavBar } from '@components/ui/network/NetworkSearchNavBar';
+import { StatisticsNavbar } from '@components/ui/statistics/StatisticsNavbar';
+import { buildUserProfileHref, Routes } from '@constants/Routes';
 import { useConnectionsScreenData } from '@hooks/useConnectionsScreenData';
-import { Routes } from '@constants/Routes';
-import { AppConfig } from '@config';
-import { encodeFriendInviteWebLink } from '@utils/friendQrPayload';
+import { useAppError } from '@providers/AppErrorProvider';
+import { getConnectionFollowService } from '@services/network/connectionFollowServiceInstance';
 import { sendFriendInviteFromRawPayload } from '@services/network/friendInviteService';
-import { shareFriendProfile } from '@services/network/shareFriendProfile';
-import { Icon } from '@components/ui/Icon';
-import { useState } from 'react';
 
 export function NetworkPage() {
-  const [query, setQuery] = useState('');
-  const { data, loading } = useConnectionsScreenData('friends', query);
-  const { data: me } = useAuthMe();
-  const profile = me?.profile;
-  const qrValue = profile
-    ? encodeFriendInviteWebLink(
-        { v: 1, uid: me!.user.id, n: profile.username, s: profile.total_score, l: profile.level_code ?? 'Z0' },
-        AppConfig.INVITE_WEB_BASE_URL,
-      )
-    : '';
+  const navigate = useNavigate();
+  const { showAppError } = useAppError();
+  const [filter, setFilter] = useState<ConnectionFilter>('friends');
+  const [relationshipOverrides, setRelationshipOverrides] = useState<Record<string, boolean>>({});
+  const [searchMode, setSearchMode] = useState(false);
+  const [searchQuery, setSearchQuery] = useState('');
+  const sentinelRef = useRef<HTMLDivElement | null>(null);
+
+  const { data, loading, loadingMore, error, refetch, loadMore } = useConnectionsScreenData(
+    filter,
+    searchQuery,
+  );
+
+  useEffect(() => {
+    if (!error) return;
+    showAppError('Impossible de charger vos connexions. Vérifiez votre connexion.', {
+      title: 'Réseau',
+      onRetry: () => void refetch(),
+    });
+  }, [error, refetch, showAppError]);
+
+  useEffect(() => {
+    const node = sentinelRef.current;
+    if (!node || !data?.hasMore) return;
+    const observer = new IntersectionObserver(
+      (entries) => {
+        if (entries.some((entry) => entry.isIntersecting)) void loadMore();
+      },
+      { rootMargin: '120px' },
+    );
+    observer.observe(node);
+    return () => observer.disconnect();
+  }, [data?.hasMore, loadMore, data?.items.length]);
+
+  const onBack = useCallback(() => {
+    if (searchMode) {
+      setSearchMode(false);
+      setSearchQuery('');
+      return;
+    }
+    if (window.history.length > 1) navigate(-1);
+    else navigate(Routes.PROFILE, { replace: true });
+  }, [navigate, searchMode]);
+
+  const onChangeFilter = useCallback((next: ConnectionFilter) => {
+    setRelationshipOverrides({});
+    setFilter(next);
+  }, []);
+
+  const effectiveRelationship = useCallback(
+    (user: ConnectionUser) => relationshipOverrides[user.id] ?? user.relationshipIsActive,
+    [relationshipOverrides],
+  );
+
+  const onToggleFollow = useCallback(
+    async (user: ConnectionUser) => {
+      const next = !effectiveRelationship(user);
+      setRelationshipOverrides((prev) => ({ ...prev, [user.id]: next }));
+      try {
+        await getConnectionFollowService().setFollowing(user.id, next);
+        void refetch();
+      } catch {
+        setRelationshipOverrides((prev) => {
+          const nextMap = { ...prev };
+          delete nextMap[user.id];
+          return nextMap;
+        });
+        showAppError('Impossible de mettre à jour le suivi.', { title: 'Réseau' });
+      }
+    },
+    [effectiveRelationship, refetch, showAppError],
+  );
+
+  const list = data?.items ?? [];
+  const emptyLabel = useMemo(() => {
+    const q = searchQuery.trim();
+    if (q.length > 0) return `Aucun utilisateur ne correspond à « ${q} ».`;
+    return 'Aucun utilisateur trouvé.';
+  }, [searchQuery]);
 
   return (
-    <div>
-      <h1>Réseau</h1>
-      <div className="card" style={{ padding: 16, textAlign: 'center' }}>
-        {qrValue ? <QRCodeSVG value={qrValue} size={180} /> : null}
-        <div style={{ display: 'flex', gap: 8, justifyContent: 'center', marginTop: 12 }}>
-          <Link to={Routes.FRIEND_SCAN} className="btn btn-ghost"><Icon name="scan-line" /> Scanner</Link>
-          {profile ? (
-            <button type="button" className="btn btn-outline" onClick={() => void shareFriendProfile({ v: 1, uid: me!.user.id, n: profile.username, s: profile.total_score, l: profile.level_code ?? 'Z0' })}>
-              Partager
-            </button>
-          ) : null}
+    <div className="network-page">
+      {loading && !data ? (
+        <div className="network-centered" role="status" aria-label="Chargement">
+          <div className="network-spinner" />
         </div>
-      </div>
-      <input className="field" style={{ margin: '16px 0' }} placeholder="Rechercher" value={query} onChange={(e) => setQuery(e.target.value)} />
-      {loading ? <p>Chargement…</p> : null}
-      {data?.items.map((u) => (
-        <Link key={u.id} to={`/users/${u.id}`} className="card" style={{ padding: 12, marginBottom: 8, display: 'flex', justifyContent: 'space-between' }}>
-          <span>{u.displayName}</span>
-          <span className="muted">{u.handle}</span>
-        </Link>
-      ))}
+      ) : null}
+
+      {error && !data ? (
+        <div className="network-centered">
+          <p className="network-error">Impossible de charger les connexions.</p>
+          <button type="button" className="network-retry" onClick={() => void refetch()}>
+            Réessayer
+          </button>
+        </div>
+      ) : null}
+
+      {data ? (
+        <>
+          <div className="network-header">
+            {searchMode ? (
+              <NetworkSearchNavBar
+                value={searchQuery}
+                onChange={setSearchQuery}
+                onClose={() => {
+                  setSearchMode(false);
+                  setSearchQuery('');
+                }}
+              />
+            ) : (
+              <StatisticsNavbar
+                title={data.viewerDisplayName}
+                onBack={onBack}
+                onSearch={() => setSearchMode(true)}
+              />
+            )}
+            <NetworkFilterTabs active={filter} onChange={onChangeFilter} />
+          </div>
+
+          {list.length === 0 ? (
+            <p className="network-empty">{emptyLabel}</p>
+          ) : (
+            <div className="network-list">
+              {list.map((user) => (
+                <ConnectionListItem
+                  key={user.id}
+                  user={user}
+                  relationshipActive={effectiveRelationship(user)}
+                  onToggleFollow={() => void onToggleFollow(user)}
+                  onPressAvatar={() => navigate(buildUserProfileHref(user.id))}
+                />
+              ))}
+            </div>
+          )}
+
+          {loadingMore ? (
+            <div className="network-footer-loader" role="status" aria-label="Chargement">
+              <div className="network-spinner is-sm" />
+            </div>
+          ) : null}
+          <div ref={sentinelRef} className="network-sentinel" aria-hidden />
+        </>
+      ) : null}
     </div>
   );
 }
@@ -54,12 +166,12 @@ export function FriendInvitePage() {
   const [message, setMessage] = useState<string | null>(null);
 
   return (
-    <div>
+    <div className="network-page network-utility-page">
       <h1>Invitation ami</h1>
-      <p className="muted">Token : {token || 'aucun'}</p>
+      <p className="network-muted">Token : {token || 'aucun'}</p>
       <button
         type="button"
-        className="btn btn-primary"
+        className="network-utility-cta"
         onClick={async () => {
           const res = await sendFriendInviteFromRawPayload(token);
           setMessage(res.ok ? `Demande envoyée à ${res.profile.n}` : res.message);
@@ -75,18 +187,18 @@ export function FriendInvitePage() {
 export function FriendScanPage() {
   const [raw, setRaw] = useState('');
   const [message, setMessage] = useState<string | null>(null);
+
   return (
-    <div>
+    <div className="network-page network-utility-page">
       <h1>Scanner un QR</h1>
-      <p className="muted">Colle le lien d’invitation si la caméra n’est pas disponible.</p>
-      <label className="field">
+      <p className="network-muted">Colle le lien d’invitation si la caméra n’est pas disponible.</p>
+      <label className="network-field">
         <span>Lien ou payload</span>
-        <input value={raw} onChange={(e) => setRaw(e.target.value)} />
+        <input value={raw} onChange={(event) => setRaw(event.target.value)} />
       </label>
       <button
         type="button"
-        className="btn btn-primary"
-        style={{ marginTop: 16 }}
+        className="network-utility-cta"
         onClick={async () => {
           const res = await sendFriendInviteFromRawPayload(raw);
           setMessage(res.ok ? `Demande envoyée à ${res.profile.n}` : res.message);

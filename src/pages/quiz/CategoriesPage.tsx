@@ -42,7 +42,7 @@ export function CategoriesPage() {
 
   if (loading && !categories.length) {
     return (
-      <div className="cat-page">
+      <div className="cat-page cat-list-page">
         <div className="cat-centered">
           <div className="cat-spinner" aria-label="Chargement" />
         </div>
@@ -52,7 +52,7 @@ export function CategoriesPage() {
 
   if (error) {
     return (
-      <div className="cat-page">
+      <div className="cat-page cat-list-page">
         <div className="cat-centered">
           <p className="cat-error">Impossible de charger les catégories.</p>
           <p className="cat-error">{error.message}</p>
@@ -65,7 +65,7 @@ export function CategoriesPage() {
   }
 
   return (
-    <div className="cat-page">
+    <div className="cat-page cat-list-page">
       <StatisticsNavbar title="Top catégories" onBack={onBack} onSearch={onSearch} />
       {categories.length === 0 ? (
         <p className="cat-empty">Aucune catégorie disponible pour le moment.</p>

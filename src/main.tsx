@@ -10,6 +10,7 @@ import './styles/categories.css';
 import './styles/quiz-play.css';
 import './styles/defis.css';
 import './styles/gains-profile.css';
+import './styles/network.css';
 
 registerSW({ immediate: true });
 

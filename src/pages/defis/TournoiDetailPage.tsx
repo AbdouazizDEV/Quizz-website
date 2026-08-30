@@ -4,124 +4,209 @@ import { useQuery, useQueryClient } from '@tanstack/react-query';
 
 import { CompetitionHeroBanner } from '@components/ui/defis/CompetitionHeroBanner';
 import { DefisNavbar } from '@components/ui/defis/DefisNavbar';
-import { DefisStateViews } from '@components/ui/defis/DefisStateViews';
+import { DefisSurfaceCard } from '@components/ui/defis/DefisSurfaceCard';
 import { DefisRoutes } from '@constants/defisRoutes';
 import { useAuthMe } from '@hooks/useAuthMe';
-import { useAppError } from '@providers/AppErrorProvider';
+import { useNetworkStatus } from '@hooks/useNetworkStatus';
 import { notifyUser } from '@platform/notify';
+import { useAppError } from '@providers/AppErrorProvider';
 import {
   fetchCompetitionById,
   registerForCompetition,
   unregisterFromCompetition,
 } from '@services/defis/competitionRepository';
-import { formatShortDate } from '@utils/defis/formatDefisTime';
 
 export function TournoiDetailPage() {
   const { id } = useParams();
+  const competitionId = id?.trim() ?? '';
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const { data: me } = useAuthMe();
+  const userId = me?.user?.id ?? '';
+  const { isOnline } = useNetworkStatus();
   const { showAppError } = useAppError();
   const [busy, setBusy] = useState(false);
-  const { data, isLoading, error, refetch } = useQuery({
-    queryKey: ['competition', id, me?.user?.id],
-    queryFn: () => fetchCompetitionById(id!, me!.user.id),
-    enabled: Boolean(id && me?.user?.id),
+
+  const { data, isLoading, isError, error } = useQuery({
+    queryKey: ['competition', competitionId, userId],
+    queryFn: () => fetchCompetitionById(competitionId, userId),
+    enabled: Boolean(competitionId && userId),
   });
 
-  const invalidate = async () => {
-    await queryClient.invalidateQueries({ queryKey: ['competition', id] });
+  const refresh = async () => {
+    await queryClient.invalidateQueries({ queryKey: ['competition', competitionId] });
     await queryClient.invalidateQueries({ queryKey: ['competitions'] });
     await queryClient.invalidateQueries({ queryKey: ['defis-dashboard'] });
   };
 
+  const onRegister = async () => {
+    if (!userId || !competitionId || busy) return;
+    setBusy(true);
+    try {
+      const result = await registerForCompetition(userId, competitionId);
+      await refresh();
+      notifyUser(
+        'Tournoi',
+        result.queued
+          ? '✓ Inscription enregistrée — synchronisation à la reconnexion.'
+          : '✓ Vous êtes inscrit !',
+      );
+    } catch (registerError) {
+      showAppError(
+        registerError instanceof Error ? registerError.message : 'Inscription impossible.',
+        { title: 'Tournoi' },
+      );
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const onUnregister = async () => {
+    if (!userId || !competitionId || busy) return;
+    const confirmed = window.confirm('Voulez-vous vraiment vous désinscrire de ce tournoi ?');
+    if (!confirmed) return;
+    setBusy(true);
+    try {
+      const result = await unregisterFromCompetition(userId, competitionId);
+      await refresh();
+      notifyUser(
+        'Tournoi',
+        result.queued
+          ? '✓ Désinscription enregistrée — synchronisation à la reconnexion.'
+          : 'Vous n’êtes plus inscrit.',
+      );
+    } catch (unregisterError) {
+      showAppError(
+        unregisterError instanceof Error ? unregisterError.message : 'Désinscription impossible.',
+        { title: 'Tournoi' },
+      );
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  if (isLoading) {
+    return (
+      <div className="defis-page defis-page--shell">
+        <DefisNavbar title="Tournoi" onBack={() => navigate(DefisRoutes.tournoiList)} />
+        <div className="tournoi-list-loader" role="status" aria-label="Chargement">
+          <div className="defis-spinner is-primary" />
+        </div>
+      </div>
+    );
+  }
+
+  if (isError) {
+    return (
+      <div className="defis-page defis-page--shell">
+        <DefisNavbar title="Tournoi" onBack={() => navigate(DefisRoutes.tournoiList)} />
+        <p className="tournoi-list-empty">
+          {error instanceof Error ? error.message : 'Impossible de charger ce tournoi.'}
+        </p>
+      </div>
+    );
+  }
+
+  if (!data) {
+    return (
+      <div className="defis-page defis-page--shell">
+        <DefisNavbar title="Tournoi" onBack={() => navigate(DefisRoutes.tournoiList)} />
+        <p className="tournoi-list-empty">Tournoi introuvable.</p>
+      </div>
+    );
+  }
+
+  const isOpen = data.status === 'scheduled';
+  const isLive = data.status === 'live';
+  const isDone = data.status === 'completed';
+
   return (
-    <div className="defis-page">
+    <div className="defis-page defis-page--shell tournoi-detail-page">
       <DefisNavbar title="Tournoi" onBack={() => navigate(DefisRoutes.tournoiList)} />
-      {isLoading ? <DefisStateViews loading /> : null}
-      {error ? (
-        <DefisStateViews
-          error={error instanceof Error ? error : 'Impossible de charger ce tournoi.'}
-          onRetry={() => void refetch()}
-        />
+
+      {!isOnline ? (
+        <p className="tournoi-offline-hint">
+          Données en cache — reconnectez-vous pour actualiser.
+        </p>
       ) : null}
-      {data ? (
-        <>
-          <CompetitionHeroBanner competition={data} />
-          {data.description ? <p>{data.description}</p> : null}
-          <p className="defis-muted">
-            {formatShortDate(data.startsAt)} → {formatShortDate(data.endsAt)}
-          </p>
-          <p className="defis-muted">{data.rewardText || 'Récompenses à gagner'}</p>
-          {data.status === 'scheduled' ? (
-            data.isRegistered ? (
+
+      <div className="tournoi-detail-board">
+        <CompetitionHeroBanner
+          competition={data}
+          subtitle={data.categoryName ? `Catégorie · ${data.categoryName}` : 'Toutes catégories'}
+        />
+
+        <div className="tournoi-detail-side">
+          <DefisSurfaceCard className="tournoi-perks-card">
+            <p className="tournoi-perks-title">À savoir</p>
+            <p className="tournoi-perk-line">✓ Gratuit · Résultats en direct</p>
+            <p className="tournoi-perk-line">✓ Bracket élimination directe</p>
+            <p className="tournoi-perk-line">
+              {data.rewardText ? `🎁 ${data.rewardText} à gagner` : '🎁 Récompense champion à gagner'}
+            </p>
+          </DefisSurfaceCard>
+
+          {isOpen && !data.isRegistered ? (
+            <button
+              type="button"
+              className="tournoi-join-cta"
+              disabled={busy}
+              onClick={() => void onRegister()}
+            >
+              {busy ? 'Inscription…' : 'Rejoindre le tournoi'}
+            </button>
+          ) : null}
+
+          {isOpen && data.isRegistered ? (
+            <DefisSurfaceCard className="tournoi-registered-card">
+              <p className="tournoi-registered-title">✓ Vous êtes inscrit</p>
+              <p className="tournoi-registered-hint">
+                Le bracket sera disponible dès le lancement du tournoi. Restez prêt !
+              </p>
               <button
                 type="button"
-                className="defis-cta defis-cta-ghost"
+                className="tournoi-unlink"
                 disabled={busy}
-                onClick={async () => {
-                  if (!me?.user?.id) return;
-                  setBusy(true);
-                  try {
-                    const result = await unregisterFromCompetition(me.user.id, data.id);
-                    notifyUser(
-                      'Tournoi',
-                      result.queued
-                        ? 'Désinscription enregistrée — synchronisation à la reconnexion.'
-                        : 'Vous n’êtes plus inscrit.',
-                    );
-                    await invalidate();
-                  } catch (err) {
-                    showAppError(err instanceof Error ? err.message : 'Désinscription impossible.', {
-                      title: 'Tournoi',
-                    });
-                  } finally {
-                    setBusy(false);
-                  }
-                }}
+                onClick={() => void onUnregister()}
               >
                 Se désinscrire
               </button>
-            ) : (
-              <button
-                type="button"
-                className="defis-cta defis-cta-primary"
-                disabled={busy}
-                onClick={async () => {
-                  if (!me?.user?.id) return;
-                  setBusy(true);
-                  try {
-                    const result = await registerForCompetition(me.user.id, data.id);
-                    notifyUser(
-                      'Tournoi',
-                      result.queued
-                        ? '✓ Inscription enregistrée — synchronisation à la reconnexion.'
-                        : '✓ Vous êtes inscrit !',
-                    );
-                    await invalidate();
-                  } catch (err) {
-                    showAppError(err instanceof Error ? err.message : 'Inscription impossible.', {
-                      title: 'Tournoi',
-                    });
-                  } finally {
-                    setBusy(false);
-                  }
-                }}
-              >
-                Inscrire
-              </button>
-            )
+            </DefisSurfaceCard>
           ) : null}
-          {id && (data.status === 'live' || data.status === 'completed') ? (
-            <button
-              type="button"
-              className="defis-cta defis-cta-navy"
-              onClick={() => navigate(DefisRoutes.tournoiBracket(id))}
-            >
-              Voir le bracket
+        </div>
+      </div>
+
+      {isLive ? (
+        <>
+          <section className="tournoi-match-card">
+            <p className="tournoi-match-eyebrow">⚡ Match en cours</p>
+            <h3 className="tournoi-match-title">Mon prochain match</h3>
+            <p className="tournoi-match-meta">
+              Jouez quand vous voulez avant la fin du tournoi. Chaque victoire vous rapproche du
+              titre.
+            </p>
+            <button type="button" className="tournoi-match-cta" disabled title="Bientôt disponible">
+              Jouer mon match →
             </button>
-          ) : null}
+          </section>
+          <button
+            type="button"
+            className="tournoi-bracket-link"
+            onClick={() => navigate(DefisRoutes.tournoiBracket(competitionId))}
+          >
+            Voir le bracket complet →
+          </button>
         </>
+      ) : null}
+
+      {isDone ? (
+        <button
+          type="button"
+          className="tournoi-bracket-link"
+          onClick={() => navigate(DefisRoutes.tournoiBracket(competitionId))}
+        >
+          Voir le podium & le bracket final →
+        </button>
       ) : null}
     </div>
   );

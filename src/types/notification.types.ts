@@ -1,5 +1,7 @@
 export type NotificationFilter = 'all' | 'unread';
 
+export type NotificationCategory = 'all' | 'friends' | 'duels' | 'announcements';
+
 export interface AppNotification {
   id: string;
   type: string;

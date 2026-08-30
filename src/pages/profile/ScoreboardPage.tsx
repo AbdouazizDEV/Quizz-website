@@ -1,10 +1,10 @@
 import { useCallback, useEffect } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
 
 import { Icon } from '@components/ui/Icon';
-import { Routes, buildUserProfileHref } from '@constants/Routes';
+import { ScoreboardList } from '@components/ui/profile/ScoreboardList';
+import { Routes } from '@constants/Routes';
 import { useGlobalLeaderboard } from '@hooks/useGlobalLeaderboard';
-import { getUserAvatarUri } from '@utils/getUserAvatarUri';
 
 export function ScoreboardPage() {
   const navigate = useNavigate();
@@ -16,7 +16,10 @@ export function ScoreboardPage() {
   }, [navigate]);
 
   useEffect(() => {
-    const refresh = () => void refetch();
+    const refresh = () => {
+      if (document.visibilityState === 'hidden') return;
+      void refetch();
+    };
     window.addEventListener('focus', refresh);
     document.addEventListener('visibilitychange', refresh);
     return () => {
@@ -28,46 +31,21 @@ export function ScoreboardPage() {
   return (
     <div className="scoreboard-page">
       <header className="scoreboard-navbar">
-        <button type="button" className="defis-navbar-side" aria-label="Retour" onClick={onBack}>
-          <Icon name="chevron-left" size={26} color="#FFFFFF" />
+        <button type="button" className="scoreboard-navbar-side" aria-label="Retour" onClick={onBack}>
+          <Icon name="arrow-left" size={22} color="#FFFFFF" />
         </button>
         <h1>Joueurs</h1>
-        <span className="defis-navbar-side" />
+        <span className="scoreboard-navbar-side" aria-hidden />
       </header>
-      {loading ? <div className="scoreboard-spinner" aria-label="Chargement" /> : null}
-      {error && !loading ? (
-        <div className="defis-state">
-          <p className="defis-error" style={{ color: '#fff' }}>
-            Impossible de charger le classement.
-          </p>
-          <button type="button" className="defis-retry" onClick={() => void refetch()}>
-            Réessayer
-          </button>
-        </div>
-      ) : null}
-      {!loading && !error && items.length === 0 ? (
-        <p className="defis-muted" style={{ color: '#fff', textAlign: 'center' }}>
-          Aucun score disponible pour le moment.
-        </p>
-      ) : null}
-      <div className="scoreboard-list">
-        {items.map((row) => {
-          const isMe = me?.userId === row.id;
-          return (
-            <Link
-              key={row.id}
-              to={buildUserProfileHref(row.id)}
-              className={isMe ? 'scoreboard-row is-me' : 'scoreboard-row'}
-            >
-              <span className="scoreboard-rank">#{row.rank}</span>
-              <span className="defis-avatar" style={{ width: 40, height: 40, margin: 0 }}>
-                <img src={row.avatarUrl || getUserAvatarUri(row.id)} alt="" />
-              </span>
-              <span className="scoreboard-name">{row.displayName}</span>
-              <span className="scoreboard-score">{row.score} pts</span>
-            </Link>
-          );
-        })}
+
+      <div className="scoreboard-list-wrap">
+        <ScoreboardList
+          items={items}
+          currentUserId={me?.userId}
+          loading={loading}
+          error={error ? 'Impossible de charger le classement.' : undefined}
+          onRetry={() => void refetch()}
+        />
       </div>
     </div>
   );

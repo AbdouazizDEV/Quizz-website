@@ -18,14 +18,14 @@ export function GainsNavCard({ icon, title, subtitle, to, accent, delayMs }: Gai
       className="gains-nav-card gains-fade"
       style={{ animationDelay: `${delayMs}ms` }}
     >
-      <span className="gains-nav-icon" style={{ background: accent }}>
-        <Icon name={icon} size={20} color="#FFFFFF" />
+      <span className="gains-nav-icon" style={{ background: `${accent}33` }}>
+        <Icon name={icon} size={18} color="#1F2347" />
       </span>
       <span className="gains-nav-copy">
         <h3>{title}</h3>
         <p>{subtitle}</p>
       </span>
-      <Icon name="chevron-right" size={18} color="#C9A000" className="gains-nav-chevron" />
+      <Icon name="chevron-right" size={18} color="#BDBDBD" className="gains-nav-chevron" />
     </Link>
   );
 }

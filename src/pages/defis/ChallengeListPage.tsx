@@ -22,7 +22,7 @@ export function ChallengeListPage() {
   const onBack = useCallback(() => navigate(DefisRoutes.hub), [navigate]);
 
   return (
-    <div className="defis-page">
+    <div className="defis-page challenge-list-page">
       <DefisNavbar title="Challenge" onBack={onBack} />
       <DefisTabSwitcher
         tabs={[

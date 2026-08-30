@@ -75,4 +75,14 @@ export const HELP_CONTACT_ENTRIES: HelpContactEntry[] = [
     action: 'url',
     target: 'https://quizzplus.app',
   },
+  {
+    id: 'whatsapp',
+    label: 'WhatsApp',
+    subtitle: 'Assistance Quizz+',
+    icon: 'message-circle',
+    iconBackground: '#E8F5E9',
+    iconColor: '#128C7E',
+    action: 'url',
+    target: 'https://wa.me/221770000000',
+  },
 ];
