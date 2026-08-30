@@ -6,16 +6,14 @@ import { useAuthStore } from '@stores/authStore';
 export function SplashPage() {
   const navigate = useNavigate();
   const token = useAuthStore((s) => s.token);
-  const hasRegisteredAccount = useAuthStore((s) => s.hasRegisteredAccount);
 
   useEffect(() => {
     const timer = window.setTimeout(() => {
       if (token?.trim()) navigate(Routes.HOME, { replace: true });
-      else if (hasRegisteredAccount) navigate(Routes.LOGIN, { replace: true });
-      else navigate(Routes.WALKTHROUGH, { replace: true });
+      else navigate(Routes.LANDING, { replace: true });
     }, 900);
     return () => window.clearTimeout(timer);
-  }, [hasRegisteredAccount, navigate, token]);
+  }, [navigate, token]);
 
   return (
     <div

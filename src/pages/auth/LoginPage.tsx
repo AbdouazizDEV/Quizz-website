@@ -87,7 +87,7 @@ export function LoginPage() {
         type="button"
         className="auth-back"
         aria-label="Retour"
-        onClick={() => navigate(Routes.CREATE_ACCOUNT_TYPE, { replace: true })}
+        onClick={() => navigate(Routes.LANDING, { replace: true })}
       >
         <Icon name="arrow-left" size={22} color="#212121" />
       </button>

@@ -2,6 +2,7 @@ import { Navigate, Route, Routes as R } from 'react-router-dom';
 import { AppShell } from './layouts/AppShell';
 import { GuestRoute, ProtectedRoute } from './layouts/Guards';
 import { SplashPage } from '@pages/SplashPage';
+import { LandingPage } from '@pages/LandingPage';
 import { WalkthroughPage } from '@pages/auth/WalkthroughPage';
 import { LoginPage } from '@pages/auth/LoginPage';
 import { RegisterPage } from '@pages/auth/RegisterPage';
@@ -58,6 +59,7 @@ export function AppRoutes() {
     <R>
       <Route path="/" element={<SplashPage />} />
       <Route element={<GuestRoute />}>
+        <Route path="/accueil" element={<LandingPage />} />
         <Route path="/walkthrough" element={<WalkthroughPage />} />
         <Route path="/login" element={<LoginPage />} />
         <Route path="/register" element={<RegisterPage />} />

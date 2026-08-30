@@ -4,6 +4,7 @@ import { registerSW } from 'virtual:pwa-register';
 import { App } from './app/App';
 import './styles/global.css';
 import './styles/auth.css';
+import './styles/landing.css';
 import './styles/home.css';
 import './styles/categories.css';
 import './styles/quiz-play.css';

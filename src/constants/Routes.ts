@@ -1,5 +1,6 @@
 export const Routes = {
   SPLASH: '/',
+  LANDING: '/accueil',
   WALKTHROUGH: '/walkthrough',
   LOGIN: '/login',
   FORGOT_PASSWORD: '/forgot-password',
