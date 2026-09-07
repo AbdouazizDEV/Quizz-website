@@ -1,3 +1,6 @@
+import { loginWithGoogleIdToken } from '@services/auth/googleAuthService';
+import { isGoogleSignInConfigured } from '@config';
+
 export type SocialAuthProvider = 'google' | 'facebook';
 
 export function getOAuthRedirectUri(): string {
@@ -5,7 +8,15 @@ export function getOAuthRedirectUri(): string {
   return `${window.location.origin}/auth/callback`;
 }
 
-/** OAuth legacy désactivé : le flux principal est passkey. */
-export async function signInWithSocialProvider(_provider: SocialAuthProvider): Promise<never> {
-  throw new Error('Connexion sociale indisponible. Utilisez une passkey.');
+/** Google natif via id_token ; Facebook encore indisponible. */
+export async function signInWithSocialProvider(provider: SocialAuthProvider) {
+  if (provider === 'google') {
+    if (!isGoogleSignInConfigured()) {
+      throw new Error('Connexion Google indisponible. Configurez VITE_GOOGLE_CLIENT_ID.');
+    }
+    throw new Error('Utilisez le bouton Google sur la page de connexion.');
+  }
+  throw new Error('Connexion Facebook indisponible.');
 }
+
+export { loginWithGoogleIdToken };

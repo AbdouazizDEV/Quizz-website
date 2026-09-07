@@ -1,10 +1,10 @@
-import { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useEffect, useState } from 'react';
+import { useLocation, useNavigate } from 'react-router-dom';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 
 import { DefisNavbar } from '@components/ui/defis/DefisNavbar';
 import { DefisTabSwitcher } from '@components/ui/defis/DefisTabSwitcher';
-import { TOURNOI_TAB_STATUS, TournoiCard } from '@components/ui/defis/TournoiCard';
+import { TournoiCard } from '@components/ui/defis/TournoiCard';
 import { DefisRoutes } from '@constants/defisRoutes';
 import { useAuthMe } from '@hooks/useAuthMe';
 import { useNetworkStatus } from '@hooks/useNetworkStatus';
@@ -24,6 +24,7 @@ const TABS: Array<{ id: CompetitionTab; label: string }> = [
 
 export function TournoiListPage() {
   const navigate = useNavigate();
+  const location = useLocation();
   const queryClient = useQueryClient();
   const { showAppError } = useAppError();
   const { data: me } = useAuthMe();
@@ -32,11 +33,16 @@ export function TournoiListPage() {
   const [tab, setTab] = useState<CompetitionTab>('inscriptions');
   const [registeringId, setRegisteringId] = useState<string | null>(null);
 
-  const { data, isLoading, isError, error } = useQuery({
+  const { data, isLoading, isError, error, refetch } = useQuery({
     queryKey: ['competitions', tab, userId],
     queryFn: () => fetchCompetitionsByTab(tab, userId),
     enabled: Boolean(userId),
   });
+
+  useEffect(() => {
+    if (!userId) return;
+    void refetch();
+  }, [location.pathname, refetch, tab, userId]);
 
   const onRegister = async (competition: CompetitionSummary) => {
     if (!userId || registeringId) return;
@@ -95,8 +101,6 @@ export function TournoiListPage() {
               key={competition.id}
               competition={competition}
               index={index}
-              tab={tab}
-              statusLabel={TOURNOI_TAB_STATUS[tab]}
               registering={registeringId === competition.id}
               onPress={() => navigate(DefisRoutes.tournoiDetail(competition.id))}
               onRegister={() => void onRegister(competition)}

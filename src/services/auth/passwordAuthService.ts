@@ -26,6 +26,7 @@ export type PasswordRegisterParams = {
   birth_date?: string;
   country_code?: string;
   phone?: string;
+  gender?: 'male' | 'female';
 };
 
 export function toFrenchPasswordAuthError(raw: unknown): string {
@@ -153,6 +154,7 @@ export async function registerWithPassword(
     birth_date: params.birth_date,
     country_code: params.country_code,
     phone: params.phone,
+    gender: params.gender,
   };
 
   try {

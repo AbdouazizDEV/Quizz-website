@@ -5,6 +5,10 @@ import { OnboardingContinueBar } from '@components/ui/onboarding/OnboardingConti
 import { OnboardingCountryPickerField } from '@components/ui/onboarding/OnboardingCountryPickerField';
 import { OnboardingDateField } from '@components/ui/onboarding/OnboardingDateField';
 import { OnboardingFilledField } from '@components/ui/onboarding/OnboardingFilledField';
+import {
+  OnboardingGenderField,
+  type OnboardingGender,
+} from '@components/ui/onboarding/OnboardingGenderField';
 import { OnboardingInternationalPhoneField } from '@components/ui/onboarding/OnboardingInternationalPhoneField';
 import { OnboardingNavbar } from '@components/ui/onboarding/OnboardingNavbar';
 import { AUTH_FORM_PLACEHOLDERS } from '@constants/authFormPlaceholders';
@@ -27,6 +31,7 @@ export function CreateAccountProfilePage() {
   const navigate = useNavigate();
   const [fullName, setFullName] = useState('');
   const [birthDate, setBirthDate] = useState<Date | null>(null);
+  const [gender, setGender] = useState<OnboardingGender | null>(null);
   const [selectedCountry, setSelectedCountry] = useState(getDefaultAuthCountry);
   const [phoneValue, setPhoneValue] = useState('');
   const setProfile = useOnboardingRegisterStore((s) => s.setProfile);
@@ -46,11 +51,16 @@ export function CreateAccountProfilePage() {
       notifyUser('Profil incomplet', 'Indiquez au minimum votre nom et votre numéro de téléphone.');
       return;
     }
+    if (!gender) {
+      notifyUser('Profil incomplet', 'Indiquez votre genre pour personnaliser votre avatar.');
+      return;
+    }
     setProfile({
       fullName: fullName.trim(),
       birthDateIso,
       countryCca2: selectedCountry.cca2,
       phoneE164,
+      gender,
     });
     navigate(Routes.REGISTER);
   };
@@ -85,6 +95,7 @@ export function CreateAccountProfilePage() {
             onChange={setBirthDate}
             placeholder={AUTH_FORM_PLACEHOLDERS.birthDate}
           />
+          <OnboardingGenderField label="Genre" value={gender} onChange={setGender} />
           <OnboardingInternationalPhoneField
             label="Numéro de téléphone"
             country={selectedCountry}

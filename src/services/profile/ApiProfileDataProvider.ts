@@ -64,7 +64,7 @@ function mapProfilePayload(data: ApiProfilePayload, userId?: string): ProfileScr
 
   const displayName = identity?.display_name?.trim() || 'Joueur';
   const uid = identity?.id || userId || '';
-  const avatarUri = getUserAvatarUri(uid, identity?.avatar_url);
+  const avatarUri = getUserAvatarUri(uid, identity?.avatar_url, identity?.gender ?? 'unknown');
 
   return {
     identity: {

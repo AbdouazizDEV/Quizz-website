@@ -1,3 +1,12 @@
+export const GOOGLE_AUTH_ERROR_CODES = {
+  accountNotRegistered: 'GOOGLE_ACCOUNT_NOT_REGISTERED',
+} as const;
+
+export const GOOGLE_AUTH_MESSAGES = {
+  accountNotRegistered:
+    "Aucun compte Quizz+ n'est associé à cet e-mail Google. Inscrivez-vous pour continuer.",
+} as const;
+
 export const AUTH_MESSAGES = {
   password: {
     tooShort: 'Le mot de passe doit contenir au moins 8 caractères.',

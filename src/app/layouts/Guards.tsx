@@ -15,8 +15,12 @@ export function GuestRoute() {
   const hydrated = useAuthStore((s) => s.hydrated);
   const location = useLocation();
   if (!hydrated) return <SplashFallback />;
-  /** L’écran register doit rester monté 5s (modal succès) après persistance JWT. */
-  if (token?.trim() && location.pathname !== Routes.REGISTER) {
+  /** Register + callback OAuth Google : ne pas couper le flux avant fin de persistance JWT. */
+  if (
+    token?.trim() &&
+    location.pathname !== Routes.REGISTER &&
+    location.pathname !== Routes.AUTH_EMAIL_CALLBACK
+  ) {
     return <Navigate to={Routes.HOME} replace />;
   }
   return <Outlet />;

@@ -11,6 +11,8 @@ export const Routes = {
   CREATE_ACCOUNT_PROFILE: '/create-account-profile',
   REGISTER: '/register',
   AUTH_EMAIL_CALLBACK: '/auth/callback',
+  PRIVACY: '/privacy',
+  TERMS: '/terms',
   HOME: '/home',
   DEFIS: '/defis',
   CATEGORIES: '/categories',

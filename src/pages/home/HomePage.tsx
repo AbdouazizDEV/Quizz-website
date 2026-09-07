@@ -30,7 +30,7 @@ import { useAuthStore } from '@stores/authStore';
 import { canVisitorAccessCategory, isVisitorSession } from '@services/auth/visitorAccessPolicy';
 import { useNotifications } from '@hooks/useNotifications';
 import { useNotificationInteractions } from '@hooks/useNotificationInteractions';
-import { getUserAvatarUri } from '@utils/getUserAvatarUri';
+import { getUserAvatarUri, resolveProfileGender } from '@utils/getUserAvatarUri';
 import {
   elapsedDaysSince,
   firstNameFromDisplay,
@@ -249,6 +249,10 @@ export function HomePage() {
       streak > 0 ? formatJoursLabel(streak) : daysActive > 0 ? formatJoursLabel(daysActive) : '0 jour';
     const loadingPlaceholders = Boolean(token?.trim()) && meLoading;
     const meRank = leaderboardMe?.rank;
+    const gender = resolveProfileGender(
+      (profile as Record<string, unknown> | undefined)?.gender,
+      meta?.gender,
+    );
 
     return {
       userId: me?.user?.id,
@@ -256,6 +260,7 @@ export function HomePage() {
       avatarUri: getUserAvatarUri(
         me?.user?.id ?? 'me',
         profile?.avatar_url ?? (typeof meta?.avatar_url === 'string' ? meta.avatar_url : undefined),
+        gender,
       ),
       displayNameWithEmoji: loadingPlaceholders ? '··· 👋' : `${first} 👋`,
       totalScoreDisplay: loadingPlaceholders ? '—' : String(score),

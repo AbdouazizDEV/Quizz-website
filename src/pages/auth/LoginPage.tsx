@@ -1,11 +1,18 @@
-import { useCallback, useState, type FormEvent } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { useCallback, useEffect, useState, type FormEvent } from 'react';
+import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { AuthShell } from '@components/ui/auth/AuthShell';
+import { AuthSocialDivider } from '@components/ui/auth/AuthSocialDivider';
+import { GoogleSignInButton } from '@components/ui/auth/GoogleSignInButton';
 import { UnderlineLabeledField } from '@components/ui/auth/UnderlineLabeledField';
 import { Icon } from '@components/ui/Icon';
 import { WalkthroughActionButton } from '@components/ui/walkthrough/WalkthroughActionButton';
 import { AUTH_FORM_PLACEHOLDERS } from '@constants/authFormPlaceholders';
+import {
+  GOOGLE_AUTH_ERROR_CODES,
+  GOOGLE_AUTH_MESSAGES,
+} from '@constants/auth.messages';
 import { Routes } from '@constants/Routes';
+import { isGoogleSignInConfigured } from '@config';
 import { persistPasskeyAuthResult, signOutAndSyncStore } from '@services/auth/authSessionController';
 import { getAuthMeFromStore } from '@services/auth/authMeRepository';
 import { mapLoginUserToAuthMe } from '@services/auth/mapLoginToAuthMe';
@@ -19,6 +26,24 @@ export function LoginPage() {
   const [showPassword, setShowPassword] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [formError, setFormError] = useState<string | null>(null);
+  const [showRegisterPrompt, setShowRegisterPrompt] = useState(false);
+  const [searchParams, setSearchParams] = useSearchParams();
+  const showGoogle = isGoogleSignInConfigured();
+  const googleError = searchParams.get('google_error');
+  const googleErrorCode = searchParams.get('google_error_code');
+
+  useEffect(() => {
+    if (!googleError?.trim()) return;
+    const isNotRegistered =
+      googleErrorCode === GOOGLE_AUTH_ERROR_CODES.accountNotRegistered;
+    setShowRegisterPrompt(isNotRegistered);
+    setFormError(
+      isNotRegistered
+        ? GOOGLE_AUTH_MESSAGES.accountNotRegistered
+        : decodeURIComponent(googleError.replace(/\+/g, ' ')),
+    );
+    setSearchParams({}, { replace: true });
+  }, [googleError, googleErrorCode, setSearchParams]);
 
   const finishLogin = useCallback(
     async (result: Awaited<ReturnType<typeof loginGateway.signIn>>) => {
@@ -64,7 +89,11 @@ export function LoginPage() {
       variant="login"
       artSrc="/assets/icons/image2.png"
       headline="Bon retour parmi nous"
-      subline="Connectez-vous avec votre e-mail ou pseudo et votre mot de passe."
+      subline={
+        showGoogle
+          ? 'Connectez-vous avec Google ou avec votre e-mail / pseudo et mot de passe.'
+          : 'Connectez-vous avec votre e-mail ou pseudo et votre mot de passe.'
+      }
       footer={
         <footer className="auth-footer auth-footer--continue auth-footer--login">
           <div className="auth-footer-inner">
@@ -94,11 +123,28 @@ export function LoginPage() {
       <div className="auth-text-block auth-text-block--login">
         <h1 className="auth-title login-title">Bonjour 👋</h1>
         <p className="auth-subtitle auth-subtitle--login">
-          Connectez-vous avec votre e-mail ou pseudo et mot de passe.
+          {showGoogle
+            ? 'Google, e-mail / pseudo et mot de passe.'
+            : 'Connectez-vous avec votre e-mail ou pseudo et mot de passe.'}
         </p>
       </div>
       <form className="auth-form auth-form--login" onSubmit={(e) => void onSubmit(e)}>
-        {formError ? <p className="auth-error">{formError}</p> : null}
+        {formError ? (
+          <div className="auth-error-block">
+            <p className="auth-error">{formError}</p>
+            {showRegisterPrompt ? (
+              <Link to={Routes.CREATE_ACCOUNT_TYPE} className="auth-text-link auth-error-register-link">
+                Créer un compte
+              </Link>
+            ) : null}
+          </div>
+        ) : null}
+        {showGoogle ? (
+          <>
+            <GoogleSignInButton disabled={submitting} onError={setFormError} />
+            <AuthSocialDivider />
+          </>
+        ) : null}
         <UnderlineLabeledField
           label="E-mail ou pseudo"
           value={identifier}

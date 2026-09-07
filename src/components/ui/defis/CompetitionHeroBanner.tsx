@@ -1,13 +1,9 @@
 import { CountdownTimer } from '@components/ui/defis/CountdownTimer';
 import type { CompetitionSummary } from '@app-types/challenge.types';
-
-const STATUS_LABELS: Record<CompetitionSummary['status'], string> = {
-  draft: 'Brouillon',
-  scheduled: 'Inscriptions ouvertes',
-  live: 'En cours',
-  completed: 'Terminé',
-  cancelled: 'Annulé',
-};
+import {
+  getCompetitionCountdown,
+  getCompetitionStatusLabel,
+} from '@utils/defis/competitionDisplay';
 
 interface CompetitionHeroBannerProps {
   competition: Pick<
@@ -18,12 +14,8 @@ interface CompetitionHeroBannerProps {
 }
 
 export function CompetitionHeroBanner({ competition, subtitle }: CompetitionHeroBannerProps) {
-  const countdownTarget =
-    competition.status === 'scheduled'
-      ? competition.startsAt
-      : competition.status === 'live'
-        ? competition.endsAt
-        : null;
+  const statusLabel = getCompetitionStatusLabel(competition);
+  const countdown = getCompetitionCountdown(competition);
 
   return (
     <section className="competition-hero defis-fade" aria-label={competition.title}>
@@ -31,7 +23,7 @@ export function CompetitionHeroBanner({ competition, subtitle }: CompetitionHero
         <span className="competition-hero-trophy" aria-hidden>
           🏆
         </span>
-        <span className="competition-hero-pill">{STATUS_LABELS[competition.status]}</span>
+        <span className="competition-hero-pill">{statusLabel}</span>
       </div>
 
       <h2 className="competition-hero-title">{competition.title}</h2>
@@ -56,12 +48,10 @@ export function CompetitionHeroBanner({ competition, subtitle }: CompetitionHero
         ) : null}
       </div>
 
-      {countdownTarget ? (
+      {countdown ? (
         <div className="competition-hero-countdown">
-          <p className="competition-hero-countdown-label">
-            {competition.status === 'scheduled' ? 'Début dans' : 'Se termine dans'}
-          </p>
-          <CountdownTimer endsAt={countdownTarget} light showPrefix={false} />
+          <p className="competition-hero-countdown-label">{countdown.label}</p>
+          <CountdownTimer endsAt={countdown.target} light showPrefix={false} />
         </div>
       ) : null}
     </section>

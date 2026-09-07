@@ -1,17 +1,13 @@
 import type { CompetitionSummary } from '@app-types/challenge.types';
-import type { CompetitionTab } from '@services/defis/competitionRepository';
-
-export const TOURNOI_TAB_STATUS: Record<CompetitionTab, string> = {
-  inscriptions: 'Inscriptions ouvertes',
-  en_cours: 'En cours',
-  fin: 'Terminé',
-};
+import {
+  canRegisterForCompetition,
+  getCompetitionStatusLabel,
+  resolveEffectiveCompetitionStatus,
+} from '@utils/defis/competitionDisplay';
 
 interface TournoiCardProps {
   competition: CompetitionSummary;
   index: number;
-  tab: CompetitionTab;
-  statusLabel: string;
   onPress: () => void;
   onRegister: () => void;
   registering?: boolean;
@@ -28,8 +24,6 @@ function formatTournoiDate(iso: string): string {
 export function TournoiCard({
   competition,
   index,
-  tab,
-  statusLabel,
   onPress,
   onRegister,
   registering = false,
@@ -38,7 +32,9 @@ export function TournoiCard({
     ? competition.registeredCount / competition.maxParticipants
     : 0;
   const isFull = competition.registeredCount >= competition.maxParticipants;
-  const canRegister = tab === 'inscriptions' && !competition.isRegistered && !isFull;
+  const effectiveStatus = resolveEffectiveCompetitionStatus(competition);
+  const canRegister = canRegisterForCompetition(competition);
+  const statusLabel = getCompetitionStatusLabel(competition);
   const delayClass = `defis-fade-d${Math.min(5, (index % 5) + 1)}`;
 
   return (
@@ -72,7 +68,7 @@ export function TournoiCard({
 
           {competition.startsAt ? (
             <span className="tournoi-card-date">
-              📅 {tab === 'inscriptions' ? "Inscriptions jusqu'au" : 'Commence le'}{' '}
+              📅 {effectiveStatus === 'scheduled' ? "Inscriptions jusqu'au" : 'Commence le'}{' '}
               {formatTournoiDate(competition.startsAt)}
             </span>
           ) : null}
@@ -95,7 +91,7 @@ export function TournoiCard({
           </div>
         ) : null}
 
-        {competition.isRegistered && tab === 'inscriptions' ? (
+        {competition.isRegistered && effectiveStatus === 'scheduled' ? (
           <p className="tournoi-card-registered">✓ Inscrit — bonne chance !</p>
         ) : null}
       </div>

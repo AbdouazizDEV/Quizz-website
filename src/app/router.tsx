@@ -5,6 +5,7 @@ import { SplashPage } from '@pages/SplashPage';
 import { LandingPage } from '@pages/LandingPage';
 import { WalkthroughPage } from '@pages/auth/WalkthroughPage';
 import { LoginPage } from '@pages/auth/LoginPage';
+import { GoogleCallbackPage } from '@pages/auth/GoogleCallbackPage';
 import { RegisterPage } from '@pages/auth/RegisterPage';
 import { CreateAccountTypePage } from '@pages/auth/CreateAccountTypePage';
 import { CreateAccountWorkplacePage } from '@pages/auth/CreateAccountWorkplacePage';
@@ -53,11 +54,16 @@ import { PremiumComparePage } from '@pages/premium/PremiumComparePage';
 import { PremiumPlansPage } from '@pages/premium/PremiumPlansPage';
 import { PremiumPaymentPage } from '@pages/premium/PremiumPaymentPage';
 import { PremiumSuccessPage } from '@pages/premium/PremiumSuccessPage';
+import { PrivacyPolicyPage } from '@pages/legal/PrivacyPolicyPage';
+import { TermsOfServicePage } from '@pages/legal/TermsOfServicePage';
 
 export function AppRoutes() {
   return (
     <R>
       <Route path="/" element={<SplashPage />} />
+      <Route path="/auth/callback" element={<GoogleCallbackPage />} />
+      <Route path="/privacy" element={<PrivacyPolicyPage />} />
+      <Route path="/terms" element={<TermsOfServicePage />} />
       <Route element={<GuestRoute />}>
         <Route path="/accueil" element={<LandingPage />} />
         <Route path="/walkthrough" element={<WalkthroughPage />} />

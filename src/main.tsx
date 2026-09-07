@@ -11,6 +11,7 @@ import './styles/quiz-play.css';
 import './styles/defis.css';
 import './styles/gains-profile.css';
 import './styles/network.css';
+import './styles/legal.css';
 
 registerSW({ immediate: true });
 

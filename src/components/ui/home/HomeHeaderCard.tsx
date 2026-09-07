@@ -85,7 +85,12 @@ export function HomeHeaderCard({
   const navigate = useNavigate();
   const isDesktop = useIsDesktop();
   const [isFlipped, setIsFlipped] = useState(false);
+  const [avatarFailed, setAvatarFailed] = useState(false);
   const width = typeof window !== 'undefined' ? Math.min(window.innerWidth, 420) : 390;
+
+  useEffect(() => {
+    setAvatarFailed(false);
+  }, [avatarUri]);
 
   const sizes = useMemo(() => {
     const widthRatio = Math.min(1.08, Math.max(0.78, width / REF_WIDTH));
@@ -177,7 +182,11 @@ export function HomeHeaderCard({
             fontSize: sizes.avatar,
           }}
         >
-          {avatarUri ? <img src={avatarUri} alt="" /> : avatarInitial}
+          {avatarUri && !avatarFailed ? (
+            <img src={avatarUri} alt="" onError={() => setAvatarFailed(true)} />
+          ) : (
+            avatarInitial
+          )}
         </button>
         <button type="button" className="home-header-identity" onClick={isDesktop ? undefined : toggleFlip}>
           <p className="home-header-greeting" style={{ fontSize: sizes.greeting }}>

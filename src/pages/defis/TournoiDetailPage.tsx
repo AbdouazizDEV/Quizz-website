@@ -1,5 +1,5 @@
-import { useState } from 'react';
-import { useNavigate, useParams } from 'react-router-dom';
+import { useEffect, useState } from 'react';
+import { useLocation, useNavigate, useParams } from 'react-router-dom';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 
 import { CompetitionHeroBanner } from '@components/ui/defis/CompetitionHeroBanner';
@@ -15,11 +15,13 @@ import {
   registerForCompetition,
   unregisterFromCompetition,
 } from '@services/defis/competitionRepository';
+import { resolveEffectiveCompetitionStatus } from '@utils/defis/competitionDisplay';
 
 export function TournoiDetailPage() {
   const { id } = useParams();
   const competitionId = id?.trim() ?? '';
   const navigate = useNavigate();
+  const location = useLocation();
   const queryClient = useQueryClient();
   const { data: me } = useAuthMe();
   const userId = me?.user?.id ?? '';
@@ -27,11 +29,16 @@ export function TournoiDetailPage() {
   const { showAppError } = useAppError();
   const [busy, setBusy] = useState(false);
 
-  const { data, isLoading, isError, error } = useQuery({
+  const { data, isLoading, isError, error, refetch } = useQuery({
     queryKey: ['competition', competitionId, userId],
     queryFn: () => fetchCompetitionById(competitionId, userId),
     enabled: Boolean(competitionId && userId),
   });
+
+  useEffect(() => {
+    if (!competitionId || !userId) return;
+    void refetch();
+  }, [competitionId, location.pathname, refetch, userId]);
 
   const refresh = async () => {
     await queryClient.invalidateQueries({ queryKey: ['competition', competitionId] });
@@ -116,9 +123,10 @@ export function TournoiDetailPage() {
     );
   }
 
-  const isOpen = data.status === 'scheduled';
-  const isLive = data.status === 'live';
-  const isDone = data.status === 'completed';
+  const effectiveStatus = resolveEffectiveCompetitionStatus(data);
+  const isOpen = effectiveStatus === 'scheduled';
+  const isLive = effectiveStatus === 'live';
+  const isDone = effectiveStatus === 'completed';
 
   return (
     <div className="defis-page defis-page--shell tournoi-detail-page">

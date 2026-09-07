@@ -1,6 +1,8 @@
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { AuthShell } from '@components/ui/auth/AuthShell';
+import { AuthSocialDivider } from '@components/ui/auth/AuthSocialDivider';
+import { GoogleSignInButton } from '@components/ui/auth/GoogleSignInButton';
 import { PasswordSuccessModal } from '@components/ui/auth/PasswordSuccessModal';
 import { UnderlineLabeledField } from '@components/ui/auth/UnderlineLabeledField';
 import { Icon } from '@components/ui/Icon';
@@ -8,6 +10,7 @@ import { OnboardingContinueBar } from '@components/ui/onboarding/OnboardingConti
 import { OnboardingNavbar } from '@components/ui/onboarding/OnboardingNavbar';
 import { AUTH_FORM_PLACEHOLDERS } from '@constants/authFormPlaceholders';
 import { Routes } from '@constants/Routes';
+import { isGoogleSignInConfigured } from '@config';
 import { persistPasskeyAuthResult } from '@services/auth/authSessionController';
 import { mapLoginUserToAuthMe } from '@services/auth/mapLoginToAuthMe';
 import { registerWithPassword, toFrenchPasswordAuthError } from '@services/auth/passwordAuthService';
@@ -31,6 +34,7 @@ export function RegisterPage() {
   const [showSuccess, setShowSuccess] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [formError, setFormError] = useState<string | null>(null);
+  const showGoogle = isGoogleSignInConfigured();
 
   useEffect(() => {
     if (!showSuccess) return undefined;
@@ -76,6 +80,7 @@ export function RegisterPage() {
         birth_date: onboarding.birthDateIso || undefined,
         country_code: onboarding.countryCca2 || undefined,
         phone: onboarding.phoneE164.trim() || undefined,
+        gender: onboarding.gender || undefined,
       });
       await persistPasskeyAuthResult(session, mapLoginUserToAuthMe(user));
       onboarding.clear();
@@ -106,10 +111,19 @@ export function RegisterPage() {
         <div className="auth-text-block">
           <h1 className="auth-title profile-title">Créer un compte ✏️</h1>
           <p className="auth-subtitle auth-subtitle--register">
-            Saisissez votre nom d&apos;utilisateur, e-mail et mot de passe.
+            {showGoogle
+              ? 'Inscrivez-vous avec Google ou avec e-mail et mot de passe.'
+              : 'Saisissez votre nom d&apos;utilisateur, e-mail et mot de passe.'}
           </p>
         </div>
         <div className="auth-form">
+          {formError ? <p className="auth-error">{formError}</p> : null}
+          {showGoogle ? (
+            <>
+              <GoogleSignInButton disabled={submitting} onError={setFormError} />
+              <AuthSocialDivider />
+            </>
+          ) : null}
           <UnderlineLabeledField
             label="Nom d'utilisateur"
             value={username}
@@ -160,7 +174,6 @@ export function RegisterPage() {
               </button>
             }
           />
-          {formError ? <p className="auth-error">{formError}</p> : null}
         </div>
       </div>
       {showSuccess ? <PasswordSuccessModal /> : null}

@@ -243,6 +243,86 @@
   color: var(--auth-secondary);
 }
 
+.auth-google-native-btn {
+  width: 100%;
+  min-height: 48px;
+  border: 1px solid var(--auth-card-border);
+  border-radius: 100px;
+  background: #fff;
+  color: var(--auth-title);
+  font-family: inherit;
+  font-size: 15px;
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  cursor: pointer;
+  transition: opacity 0.12s ease, box-shadow 0.12s ease;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.06);
+}
+
+.auth-google-native-btn:hover:not(:disabled) {
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.08);
+}
+
+.auth-google-native-btn:disabled {
+  opacity: 0.65;
+  cursor: not-allowed;
+}
+
+.auth-google-native-btn__icon {
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  background: #fff;
+  border: 1px solid #dadce0;
+  color: #4285f4;
+  font-weight: 800;
+  font-size: 14px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  line-height: 1;
+}
+
+.auth-google-wrap {
+  width: 100%;
+  display: flex;
+  justify-content: center;
+  margin-bottom: 4px;
+}
+
+.auth-google-wrap iframe {
+  max-width: 100%;
+}
+
+.auth-google-disabled {
+  pointer-events: none;
+  opacity: 0.65;
+}
+
+.auth-social-divider {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  width: 100%;
+  margin: 16px 0 8px;
+}
+
+.auth-social-divider__line {
+  flex: 1;
+  height: 1px;
+  background: var(--auth-card-border);
+}
+
+.auth-social-divider__label {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--auth-secondary);
+  text-transform: lowercase;
+}
+
 .auth-text-block {
   width: 100%;
   display: flex;
@@ -489,6 +569,52 @@
   height: 2px;
   border-radius: 2px;
   background: var(--auth-gold);
+}
+
+.auth-gender-field {
+  grid-column: 1 / -1;
+}
+
+.auth-gender-options {
+  display: flex;
+  gap: 12px;
+  width: 100%;
+}
+
+.auth-gender-option {
+  flex: 1;
+  min-height: 72px;
+  border-radius: 14px;
+  border: 1.5px solid #e5e7eb;
+  background: #ffffff;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  padding: 10px 8px;
+  cursor: pointer;
+  transition: border-color 0.15s ease, background-color 0.15s ease;
+}
+
+.auth-gender-option.is-selected {
+  border-color: #ffb703;
+  background: #fff8e1;
+}
+
+.auth-gender-emoji {
+  font-size: 24px;
+  line-height: 1;
+}
+
+.auth-gender-label {
+  font-size: 15px;
+  font-weight: 700;
+  color: #616161;
+}
+
+.auth-gender-option.is-selected .auth-gender-label {
+  color: #212121;
 }
 
 .auth-passkey-hint {

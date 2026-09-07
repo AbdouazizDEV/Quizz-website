@@ -10,6 +10,7 @@ export const ABOUT_FEATURES = [
 ] as const;
 
 export const ABOUT_LINKS = [
-  { id: 'site', label: 'Site officiel', url: 'https://quizzplus.app' },
-  { id: 'privacy', label: 'Politique de confidentialité', url: 'https://quizzplus.app/privacy' },
+  { id: 'site', label: 'Site officiel', url: 'https://quizzp.com/accueil' },
+  { id: 'privacy', label: 'Politique de confidentialité', url: 'https://quizzp.com/privacy' },
+  { id: 'terms', label: 'Conditions d’utilisation', url: 'https://quizzp.com/terms' },
 ] as const;

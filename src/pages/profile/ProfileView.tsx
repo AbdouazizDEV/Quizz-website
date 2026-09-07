@@ -217,7 +217,7 @@ export function ProfileView({ userId }: ProfileViewProps) {
               identityActionDisabled={identityActionVm.disabled}
               showInsightsCarousel={!isExternalProfile}
               progressDetail={isExternalProfile ? null : progressDetail}
-              quizzesCompleted={me?.profile?.quizzes_completed ?? data.quizTotalCount}
+              quizzesCompleted={data.quizTotalCount}
               streakDays={me?.profile?.streak_days ?? 0}
               isPremium={Boolean(me?.profile?.is_premium)}
               premiumDaysLeft={9}
