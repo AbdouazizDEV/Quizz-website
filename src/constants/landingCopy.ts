@@ -61,6 +61,8 @@ export const LANDING_COPY = {
       rights: 'Tous droits réservés.',
       login: 'Connexion',
       register: 'Inscription',
+      privacy: 'Confidentialité',
+      terms: 'Conditions',
     },
   },
   en: {
@@ -123,6 +125,8 @@ export const LANDING_COPY = {
       rights: 'All rights reserved.',
       login: 'Log in',
       register: 'Sign up',
+      privacy: 'Privacy',
+      terms: 'Terms',
     },
   },
 } as const;

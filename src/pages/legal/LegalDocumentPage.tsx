@@ -15,7 +15,7 @@ export function LegalDocumentPage({ title, intro, sections, alternate }: Props) 
     <main className="legal-page">
       <header className="legal-page__header">
         <Link to={Routes.LANDING} className="legal-page__brand">
-          <img src="/assets/icons/logo.png" alt="" width={40} height={40} />
+          <img src="/assets/icons/logo.png" alt="Quizz+" width={40} height={40} />
           <span>{LEGAL_APP_NAME}</span>
         </Link>
       </header>

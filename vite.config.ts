@@ -18,11 +18,16 @@ export default defineConfig({
         'icons/icon-512.png',
         'icons/icon-512-maskable.png',
         'assets/Logo2.png',
+        'og-image.png',
+        'robots.txt',
+        'sitemap.xml',
+        'googlec332156bd88a1a70.html',
       ],
       manifest: {
         name: 'Quizz+',
         short_name: 'Quizz+',
-        description: 'Joue, progresse et défie tes amis.',
+        description:
+          'Quiz en ligne, duels, tournois et gains — Afrique et francophonie.',
         theme_color: '#F5A623',
         background_color: '#FFFFFF',
         display: 'standalone',

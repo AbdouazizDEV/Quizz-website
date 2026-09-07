@@ -75,7 +75,7 @@ export function LandingPage() {
 
       <header className={clsx('lp-nav', scrolled && 'lp-nav--solid')}>
         <a href="#accueil" className="lp-brand" onClick={(e) => { e.preventDefault(); scrollTo('accueil'); }}>
-          <img src="/assets/icons/logo.png" alt="" width={36} height={36} />
+          <img src="/assets/icons/logo.png" alt="Quizz+" width={36} height={36} />
           <span>Quizz+</span>
         </a>
 
@@ -259,7 +259,7 @@ export function LandingPage() {
       <footer className="lp-footer">
         <div className="lp-footer-top">
           <div className="lp-footer-brand">
-            <img src="/assets/icons/logo.png" alt="" width={40} height={40} />
+            <img src="/assets/icons/logo.png" alt="Quizz+" width={40} height={40} />
             <div>
               <strong>Quizz+</strong>
               <p>{t.footer.tagline}</p>
@@ -268,6 +268,8 @@ export function LandingPage() {
           <div className="lp-footer-links">
             <Link to={Routes.LOGIN}>{t.footer.login}</Link>
             <Link to={Routes.CREATE_ACCOUNT_TYPE}>{t.footer.register}</Link>
+            <Link to={Routes.PRIVACY}>{t.footer.privacy}</Link>
+            <Link to={Routes.TERMS}>{t.footer.terms}</Link>
             <button type="button" onClick={() => scrollTo('contact')}>{t.nav.contact}</button>
           </div>
         </div>

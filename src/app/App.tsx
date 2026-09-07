@@ -7,6 +7,7 @@ import { AppRoutes } from './router';
 import { AuthSessionRefreshBridge } from '@providers/AuthSessionRefreshBridge';
 import { OfflineSyncBridge } from '@providers/OfflineSyncBridge';
 import { ToastHost } from '@components/ui/common/ToastHost';
+import { DocumentSeo } from '@components/seo/DocumentSeo';
 
 export function App() {
   return (
@@ -14,6 +15,7 @@ export function App() {
       <AppErrorProvider>
         <OfflineProvider>
           <BrowserRouter>
+            <DocumentSeo />
             <AuthHydrationGate>
               <AuthSessionRefreshBridge />
               <OfflineSyncBridge />

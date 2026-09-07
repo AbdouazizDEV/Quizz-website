@@ -8,10 +8,14 @@ export function SplashPage() {
   const token = useAuthStore((s) => s.token);
 
   useEffect(() => {
+    const isBot = /bot|googlebot|bingbot|crawler|spider|slurp|duckduckbot/i.test(
+      navigator.userAgent,
+    );
+    const delay = isBot ? 0 : 900;
     const timer = window.setTimeout(() => {
       if (token?.trim()) navigate(Routes.HOME, { replace: true });
       else navigate(Routes.LANDING, { replace: true });
-    }, 900);
+    }, delay);
     return () => window.clearTimeout(timer);
   }, [navigate, token]);
 

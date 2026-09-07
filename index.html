@@ -6,10 +6,43 @@
     <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
     <meta name="theme-color" content="#F5A623" />
+    <meta name="robots" content="index,follow" />
+    <meta name="google-site-verification" content="%VITE_GSC_VERIFICATION%" />
+    <meta name="author" content="Quizz+" />
     <meta
       name="description"
-      content="Quizz+ — l’arène de quiz où le savoir marque des points. Duels, classements et gains."
+      content="Quizz+ est l’arène de quiz en ligne : culture générale, duels entre amis, tournois et gains. Joue, progresse et grimpe au classement."
     />
+    <link rel="canonical" href="https://quizzp.com/accueil" />
+
+    <meta property="og:type" content="website" />
+    <meta property="og:site_name" content="Quizz+" />
+    <meta property="og:locale" content="fr_FR" />
+    <meta property="og:url" content="https://quizzp.com/accueil" />
+    <meta
+      property="og:title"
+      content="Quizz+ | Quiz en ligne, duels et gains — Afrique & francophonie"
+    />
+    <meta
+      property="og:description"
+      content="Quizz+ est l’arène de quiz en ligne : culture générale, duels entre amis, tournois et gains. Joue, progresse et grimpe au classement."
+    />
+    <meta property="og:image" content="https://quizzp.com/og-image.png" />
+    <meta property="og:image:alt" content="Quizz+ — Le savoir qui marque des points" />
+    <meta property="og:image:width" content="1200" />
+    <meta property="og:image:height" content="630" />
+
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta
+      name="twitter:title"
+      content="Quizz+ | Quiz en ligne, duels et gains — Afrique & francophonie"
+    />
+    <meta
+      name="twitter:description"
+      content="Quizz+ est l’arène de quiz en ligne : culture générale, duels entre amis, tournois et gains."
+    />
+    <meta name="twitter:image" content="https://quizzp.com/og-image.png" />
+
     <meta name="apple-mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-title" content="Quizz+" />
     <link rel="preconnect" href="https://fonts.googleapis.com" />
@@ -18,10 +51,65 @@
       href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;500;600;700;800;900&display=swap"
       rel="stylesheet"
     />
-    <title>Quizz+</title>
+    <title>Quizz+ | Quiz en ligne, duels et gains — Afrique & francophonie</title>
+    <script id="quizz-seo-jsonld" type="application/ld+json">
+      {
+        "@context": "https://schema.org",
+        "@graph": [
+          {
+            "@type": "Organization",
+            "@id": "https://quizzp.com/#organization",
+            "name": "Quizz+",
+            "legalName": "DIGIGROUP",
+            "url": "https://quizzp.com",
+            "logo": "https://quizzp.com/icons/icon-512.png",
+            "email": "contact@quizzp.com"
+          },
+          {
+            "@type": "WebSite",
+            "@id": "https://quizzp.com/#website",
+            "name": "Quizz+",
+            "url": "https://quizzp.com/accueil",
+            "inLanguage": "fr-FR",
+            "description": "Quizz+ est l’arène de quiz en ligne : culture générale, duels entre amis, tournois et gains.",
+            "publisher": { "@id": "https://quizzp.com/#organization" }
+          },
+          {
+            "@type": "WebApplication",
+            "@id": "https://quizzp.com/#app",
+            "name": "Quizz+",
+            "url": "https://quizzp.com/accueil",
+            "applicationCategory": "GameApplication",
+            "operatingSystem": "Web",
+            "inLanguage": "fr-FR",
+            "description": "Quiz, duels, tournois et gains — Afrique et francophonie.",
+            "offers": { "@type": "Offer", "price": "0", "priceCurrency": "XOF" },
+            "publisher": { "@id": "https://quizzp.com/#organization" }
+          }
+        ]
+      }
+    </script>
   </head>
   <body>
     <div id="root"></div>
+    <noscript>
+      <main>
+        <h1>Quizz+ — Le savoir qui marque des points</h1>
+        <p>
+          Quiz en ligne, duels entre amis, tournois et gains. L’arène de culture générale pour
+          l’Afrique et la francophonie.
+        </p>
+        <p>
+          <a href="/accueil">Découvrir Quizz+</a>
+          ·
+          <a href="/login">Se connecter</a>
+          ·
+          <a href="/privacy">Confidentialité</a>
+          ·
+          <a href="/terms">Conditions</a>
+        </p>
+      </main>
+    </noscript>
     <script type="module" src="/src/main.tsx"></script>
   </body>
 </html>
