@@ -184,29 +184,3 @@ export function FriendInvitePage() {
   );
 }
 
-export function FriendScanPage() {
-  const [raw, setRaw] = useState('');
-  const [message, setMessage] = useState<string | null>(null);
-
-  return (
-    <div className="network-page network-utility-page">
-      <h1>Scanner un QR</h1>
-      <p className="network-muted">Colle le lien d’invitation si la caméra n’est pas disponible.</p>
-      <label className="network-field">
-        <span>Lien ou payload</span>
-        <input value={raw} onChange={(event) => setRaw(event.target.value)} />
-      </label>
-      <button
-        type="button"
-        className="network-utility-cta"
-        onClick={async () => {
-          const res = await sendFriendInviteFromRawPayload(raw);
-          setMessage(res.ok ? `Demande envoyée à ${res.profile.n}` : res.message);
-        }}
-      >
-        Envoyer
-      </button>
-      {message ? <p>{message}</p> : null}
-    </div>
-  );
-}

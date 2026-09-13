@@ -8,6 +8,7 @@ interface QuizFeedbackFunFactModalProps {
   funFact: string;
   correctAnswerLabel?: string;
   continueLabel: string;
+  continueDisabled?: boolean;
   onContinue: () => void;
 }
 
@@ -30,6 +31,7 @@ export function QuizFeedbackFunFactModal({
   funFact,
   correctAnswerLabel,
   continueLabel,
+  continueDisabled = false,
   onContinue,
 }: QuizFeedbackFunFactModalProps) {
   if (!visible) return null;
@@ -59,7 +61,12 @@ export function QuizFeedbackFunFactModal({
         ) : null}
         <p className="quiz-feedback-label">Le saviez-vous ?</p>
         <p className="quiz-feedback-body">{body}</p>
-        <button type="button" className="quiz-feedback-cta" onClick={onContinue}>
+        <button
+          type="button"
+          className="quiz-feedback-cta"
+          disabled={continueDisabled}
+          onClick={onContinue}
+        >
           {continueLabel}
         </button>
       </div>

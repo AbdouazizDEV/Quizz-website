@@ -27,3 +27,18 @@ export async function writeStoredSessionExpiresAt(expiresAt: number): Promise<vo
 export async function clearStoredSessionExpiresAt(): Promise<void> {
   await webStorage.removeItem(AUTH_STORAGE_KEYS.sessionExpiresAt);
 }
+
+export async function readStoredSessionHardExpiresAt(): Promise<number | null> {
+  const raw = await webStorage.getItem(AUTH_STORAGE_KEYS.sessionHardExpiresAt);
+  if (!raw) return null;
+  const n = Number.parseInt(raw, 10);
+  return Number.isFinite(n) ? n : null;
+}
+
+export async function writeStoredSessionHardExpiresAt(expiresAt: number): Promise<void> {
+  await webStorage.setItem(AUTH_STORAGE_KEYS.sessionHardExpiresAt, String(expiresAt));
+}
+
+export async function clearStoredSessionHardExpiresAt(): Promise<void> {
+  await webStorage.removeItem(AUTH_STORAGE_KEYS.sessionHardExpiresAt);
+}

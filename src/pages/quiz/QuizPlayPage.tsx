@@ -1,10 +1,11 @@
-import { useCallback, useEffect, useMemo, useRef } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import { useQueryClient } from '@tanstack/react-query';
 import { QuizPlayNavbar } from '@components/ui/quiz/play/QuizPlayNavbar';
 import { QuizQuestionHeader } from '@components/ui/quiz/play/QuizQuestionHeader';
 import { QuizAnswerGrid } from '@components/ui/quiz/play/QuizAnswerGrid';
 import { QuizFeedbackFunFactModal } from '@components/ui/quiz/play/QuizFeedbackFunFactModal';
+import { QuizResultsProcessingModal } from '@components/ui/quiz/play/QuizResultsProcessingModal';
 import { useAuthMe } from '@hooks/useAuthMe';
 import { useQuestionTimer } from '@hooks/useQuestionTimer';
 import { recordChallengeParticipation } from '@services/defis/participateChallenge.service';
@@ -32,6 +33,7 @@ export function QuizPlayPage() {
   const sessionPoints = useQuizPlaySessionStore((s) => s.sessionPoints);
   const selectedOptionId = useQuizPlaySessionStore((s) => s.selectedOptionId);
   const feedbackPhase = useQuizPlaySessionStore((s) => s.feedbackPhase);
+  const sessionPhase = useQuizPlaySessionStore((s) => s.sessionPhase);
   const lastPointsEarned = useQuizPlaySessionStore((s) => s.lastPointsEarned);
   const correctAnswerLabel = useQuizPlaySessionStore((s) => s.correctAnswerLabel);
   const secondsPerQuestion = useQuizPlaySessionStore((s) => s.secondsPerQuestion);
@@ -44,6 +46,8 @@ export function QuizPlayPage() {
   const expiredForQuestionRef = useRef(false);
   const correctFeedbackKeyRef = useRef<string | null>(null);
   const wrongFeedbackKeyRef = useRef<string | null>(null);
+  const submitLockRef = useRef(false);
+  const [isContinueBusy, setIsContinueBusy] = useState(false);
 
   const question = useMemo(() => payload?.questions[currentIndex] ?? null, [payload, currentIndex]);
 
@@ -59,7 +63,7 @@ export function QuizPlayPage() {
     duration: secondsPerQuestion,
     onExpire: handleTimerExpire,
     resetKey: currentIndex,
-    autoStart: feedbackPhase === 'idle',
+    autoStart: feedbackPhase === 'idle' && sessionPhase === 'playing',
   });
 
   useEffect(() => {
@@ -76,9 +80,9 @@ export function QuizPlayPage() {
   }, [currentIndex]);
 
   useEffect(() => {
-    if (feedbackPhase === 'idle') resume();
+    if (feedbackPhase === 'idle' && sessionPhase === 'playing') resume();
     else pause();
-  }, [feedbackPhase, pause, resume]);
+  }, [feedbackPhase, sessionPhase, pause, resume]);
 
   useEffect(() => {
     if (feedbackPhase === 'correct') {
@@ -97,7 +101,10 @@ export function QuizPlayPage() {
   }, [feedbackPhase, currentIndex]);
 
   const onPick = (optionId: string) => {
-    if (timeLeft <= 0 || !question || feedbackPhase !== 'idle') return;
+    const state = useQuizPlaySessionStore.getState();
+    if (timeLeft <= 0 || !question || state.sessionPhase !== 'playing' || state.feedbackPhase !== 'idle') {
+      return;
+    }
     const isCorrect = optionId === question.correctOptionId;
     selectOption(
       optionId,
@@ -108,9 +115,22 @@ export function QuizPlayPage() {
   };
 
   const onContinueAfterFeedback = async () => {
+    if (submitLockRef.current) return;
     if (!quizId || !payload) return;
+    if (useQuizPlaySessionStore.getState().sessionPhase === 'submitting') return;
+
+    const isLastQuestion = currentIndex >= payload.questions.length - 1;
+    if (isLastQuestion) {
+      submitLockRef.current = true;
+      setIsContinueBusy(true);
+    }
+
     const next = advanceFromFeedback();
-    if (next === 'continue') return;
+    if (next === 'continue') {
+      submitLockRef.current = false;
+      setIsContinueBusy(false);
+      return;
+    }
 
     const answers = useQuizPlaySessionStore.getState().answers;
     const earned = useQuizPlaySessionStore.getState().sessionPoints;
@@ -172,7 +192,8 @@ export function QuizPlayPage() {
   }
 
   const total = payload.questions.length;
-  const revealed = feedbackPhase !== 'idle';
+  const isSubmittingResults = sessionPhase === 'submitting';
+  const revealed = feedbackPhase !== 'idle' && !isSubmittingResults;
   const maxSessionPoints = payload.questions.reduce(
     (sum, q) => sum + pointsForDifficulty(q.difficulty),
     0,
@@ -180,7 +201,10 @@ export function QuizPlayPage() {
 
   return (
     <div className="quiz-play-page">
-      <div className="quiz-play-scroll" style={revealed ? { overflow: 'hidden' } : undefined}>
+      <div
+        className="quiz-play-scroll"
+        style={revealed || isSubmittingResults ? { overflow: 'hidden' } : undefined}
+      >
         <div className="quiz-play-stage">
           <QuizPlayNavbar
             current={currentIndex + 1}
@@ -211,7 +235,7 @@ export function QuizPlayPage() {
         </div>
       </div>
 
-      {feedbackPhase !== 'idle' ? (
+      {feedbackPhase !== 'idle' && !isSubmittingResults ? (
         <QuizFeedbackFunFactModal
           visible={revealed}
           phase={feedbackPhase}
@@ -225,9 +249,12 @@ export function QuizPlayPage() {
             feedbackPhase === 'incorrect' || feedbackPhase === 'timeout' ? correctAnswerLabel : undefined
           }
           continueLabel={currentIndex >= total - 1 ? 'Voir le score' : 'Continuer'}
+          continueDisabled={isContinueBusy}
           onContinue={() => void onContinueAfterFeedback()}
         />
       ) : null}
+
+      <QuizResultsProcessingModal visible={isSubmittingResults} />
     </div>
   );
 }

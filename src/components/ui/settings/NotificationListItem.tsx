@@ -1,5 +1,6 @@
 import type { AppNotification } from '@app-types/notification.types';
 import { Icon } from '@components/ui/Icon';
+import { NotificationSwipeRow } from '@components/ui/settings/NotificationSwipeRow';
 import { isPendingDuelRequest } from '@services/notifications/duelNotificationHelpers';
 import { isNotificationPressable } from '@services/notifications/notificationActions';
 import {
@@ -16,7 +17,8 @@ interface NotificationListItemProps {
   onAcceptDuel?: () => void;
   onRejectDuel?: () => void;
   onMarkRead?: () => void;
-  onDeleteRequest?: () => void;
+  onSwipeDelete?: () => void;
+  compact?: boolean;
 }
 
 export function NotificationListItem({
@@ -28,16 +30,18 @@ export function NotificationListItem({
   onAcceptDuel,
   onRejectDuel,
   onMarkRead,
-  onDeleteRequest,
+  onSwipeDelete,
+  compact = false,
 }: NotificationListItemProps) {
-  const visual = getNotificationVisual(item.type);
   const isFriendRequest = item.type === 'friend_request' && !item.isRead;
   const isDuelRequest = isPendingDuelRequest(item);
   const pressable = isNotificationPressable(item);
   const interactive = pressable && !isFriendRequest && !isDuelRequest;
 
-  return (
-    <article className={item.isRead ? 'settings-notif-card' : 'settings-notif-card is-unread'}>
+  const card = (
+    <article
+      className={`settings-notif-card${item.isRead ? '' : ' is-unread'}${compact ? ' is-compact' : ''}`}
+    >
       {interactive ? (
         <button type="button" className="settings-notif-hit" onClick={onPress}>
           <NotificationCardBody item={item} />
@@ -70,24 +74,24 @@ export function NotificationListItem({
         </div>
       ) : null}
 
-      <div className="settings-notif-tools">
-        {!item.isRead && onMarkRead ? (
+      {!compact && !item.isRead && onMarkRead ? (
+        <div className="settings-notif-tools">
           <button type="button" className="settings-notif-read" disabled={busy} onClick={onMarkRead}>
             Marquer lu
           </button>
-        ) : null}
-        {onDeleteRequest ? (
-          <button
-            type="button"
-            className="settings-notif-delete"
-            aria-label="Supprimer"
-            onClick={onDeleteRequest}
-          >
-            <Icon name="trash-2" size={16} color="#C62828" />
-          </button>
-        ) : null}
-      </div>
+        </div>
+      ) : null}
     </article>
+  );
+
+  if (!onSwipeDelete) {
+    return card;
+  }
+
+  return (
+    <NotificationSwipeRow enabled={!busy} onSwipeDelete={onSwipeDelete} className={compact ? 'is-compact' : undefined}>
+      {card}
+    </NotificationSwipeRow>
   );
 }
 

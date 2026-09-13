@@ -3084,7 +3084,7 @@
 .settings-notif-list {
   display: flex;
   flex-direction: column;
-  gap: 10px;
+  gap: 14px;
 }
 
 .settings-notif-card {
@@ -3210,6 +3210,65 @@
   border: 1px solid #e0e0e0;
   background: #f5f5f5;
   color: #616161;
+}
+
+.settings-notif-swipe {
+  position: relative;
+  overflow: hidden;
+  border-radius: 18px;
+  flex-shrink: 0;
+}
+
+.settings-notif-swipe.is-compact {
+  border-radius: 16px;
+}
+
+.settings-notif-swipe-bg {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  width: 108px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  background: #ff4d4f;
+  color: #ffffff;
+  font-size: 12px;
+  font-weight: 700;
+  opacity: 0;
+  transition: opacity 0.15s ease;
+  pointer-events: none;
+}
+
+.settings-notif-swipe-bg.is-visible {
+  opacity: 1;
+}
+
+.settings-notif-swipe-bg.is-left {
+  left: 0;
+}
+
+.settings-notif-swipe-bg.is-right {
+  right: 0;
+}
+
+.settings-notif-swipe-content {
+  position: relative;
+  z-index: 1;
+  touch-action: pan-y;
+  cursor: grab;
+  will-change: transform;
+}
+
+.settings-notif-swipe-content.is-dragging {
+  cursor: grabbing;
+  transition: none;
+}
+
+.settings-notif-swipe-content:not(.is-dragging) {
+  transition: transform 0.2s ease;
 }
 
 .settings-notif-tools {

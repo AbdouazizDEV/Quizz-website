@@ -1,4 +1,4 @@
-const SHARE_URL = 'https://quizzplus.app';
+const SHARE_URL = 'https://quizzp.com';
 
 async function dataUriToFile(dataUri: string): Promise<File> {
   const res = await fetch(dataUri);

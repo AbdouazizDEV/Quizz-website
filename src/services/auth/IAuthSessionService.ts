@@ -9,7 +9,7 @@ export interface IAuthSessionService {
   saveAuthenticatedSession(
     token: string,
     refreshToken?: string | null,
-    sessionMeta?: { expires_at?: number } | null,
+    sessionMeta?: { expires_at?: number; session_expires_at?: number } | null,
   ): Promise<void>;
   signOut(): Promise<void>;
 }

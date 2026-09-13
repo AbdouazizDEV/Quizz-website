@@ -2,7 +2,6 @@ import { useEffect, useRef, type RefObject } from 'react';
 
 export interface HomeInsightItem {
   id: string;
-  title: string;
   body: string;
   tag: string;
   gradient: readonly [string, string];
@@ -13,6 +12,7 @@ interface HomeInsightCarouselProps {
   activeIndex: number;
   onChangeIndex: (index: number) => void;
   carouselRef: RefObject<HTMLDivElement | null>;
+  loading?: boolean;
 }
 
 export function HomeInsightCarousel({
@@ -20,6 +20,7 @@ export function HomeInsightCarousel({
   activeIndex,
   onChangeIndex,
   carouselRef,
+  loading = false,
 }: HomeInsightCarouselProps) {
   const ignoreScroll = useRef(false);
 
@@ -33,6 +34,18 @@ export function HomeInsightCarousel({
     }, 420);
     return () => window.clearTimeout(t);
   }, [activeIndex, carouselRef]);
+
+  if (loading) {
+    return (
+      <div className="home-insight-carousel home-insight-carousel--loading">
+        <div className="home-insight-loading" aria-busy="true" />
+      </div>
+    );
+  }
+
+  if (insights.length === 0) {
+    return null;
+  }
 
   return (
     <div className="home-insight-carousel">
@@ -53,7 +66,6 @@ export function HomeInsightCarousel({
             style={{ background: `linear-gradient(180deg, ${item.gradient[0]}, ${item.gradient[1]})` }}
           >
             <span className="home-insight-tag">{item.tag}</span>
-            <h3 className="home-insight-title">{item.title}</h3>
             <p className="home-insight-body">{item.body}</p>
           </article>
         ))}

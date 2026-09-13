@@ -8,6 +8,8 @@ export interface AuthSessionPayload {
   refresh_token: string;
   expires_in?: number;
   expires_at?: number;
+  /** Fin absolue de session (unix sec) — auth mot de passe max 24 h. */
+  session_expires_at?: number;
   token_type?: string;
 }
 

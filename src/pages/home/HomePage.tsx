@@ -1,8 +1,8 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useLocation, useNavigate } from 'react-router-dom';
 
 import { HomeActionTiles } from '@components/ui/home/HomeActionTiles';
-import { HomeDailyCategoriesSection } from '@components/ui/home/HomeDailyCategoriesSection';
+import { HomeDailyQuizSection } from '@components/ui/home/HomeDailyQuizSection';
 import { HomeHeaderCard } from '@components/ui/home/HomeHeaderCard';
 import {
   NotificationDeleteConfirmModal,
@@ -19,15 +19,17 @@ import {
 import { HomeRewardsSection } from '@components/ui/home/HomeRewardsSection';
 import { HomeSectionTitle } from '@components/ui/home/HomeSectionTitle';
 import type { AppNotification } from '@app-types/notification.types';
-import { buildUserProfileHref, Routes } from '@constants/Routes';
+import type { DailyQuizCard } from '@app-types/dailyQuiz.types';
+import { buildQuizEntryHref, buildUserProfileHref, Routes } from '@constants/Routes';
 import { DefisRoutes } from '@constants/defisRoutes';
 import type { HomeActionTileId } from '@constants/homeActionTiles';
-import { useCategoriesExplore } from '@hooks/useCategoriesExplore';
+import { useDailyQuizzes } from '@hooks/useDailyQuizzes';
+import { useHomeFunFacts } from '@hooks/useHomeFunFacts';
 import { useAuthMe } from '@hooks/useAuthMe';
 import { useDefisDashboard } from '@hooks/defis/useDefisDashboard';
 import { useGlobalLeaderboard } from '@hooks/useGlobalLeaderboard';
 import { useAuthStore } from '@stores/authStore';
-import { canVisitorAccessCategory, isVisitorSession } from '@services/auth/visitorAccessPolicy';
+import { isVisitorSession } from '@services/auth/visitorAccessPolicy';
 import { useNotifications } from '@hooks/useNotifications';
 import { useNotificationInteractions } from '@hooks/useNotificationInteractions';
 import { getUserAvatarUri, resolveProfileGender } from '@utils/getUserAvatarUri';
@@ -42,33 +44,14 @@ import {
   levelProgressEndpoints,
 } from '@utils/levelDisplay';
 import { useAppError } from '@providers/AppErrorProvider';
-
-const INSIGHTS: HomeInsightItem[] = [
-  {
-    id: 'savoir-1',
-    title: 'Le cerveau adore les quiz courts',
-    body: 'Des sessions de 3 a 5 minutes ameliorent la memorisation a long terme.',
-    tag: 'Neurosciences',
-    gradient: ['#EEF2FF', '#E0E7FF'],
-  },
-  {
-    id: 'savoir-2',
-    title: 'Repondre vite aide la concentration',
-    body: "Limiter le temps de reponse active l'attention et reduit la distraction.",
-    tag: 'Productivite',
-    gradient: ['#FFF7D6', '#FFE9A8'],
-  },
-  {
-    id: 'savoir-3',
-    title: 'La repetition espacee fonctionne',
-    body: 'Rejouer un quiz 24h puis 72h plus tard ancre les connaissances.',
-    tag: 'Methode',
-    gradient: ['#E8FAF2', '#CCF1E2'],
-  },
-];
+import {
+  FALLBACK_HOME_INSIGHTS,
+  mapFunFactsToInsights,
+} from '@utils/homeFunFactsDisplay';
 
 export function HomePage() {
   const navigate = useNavigate();
+  const location = useLocation();
   const { showAppError } = useAppError();
   const carouselRef = useRef<HTMLDivElement | null>(null);
   const [activeInsight, setActiveInsight] = useState(0);
@@ -79,10 +62,16 @@ export function HomePage() {
   const { items: leaderboardRows, me: leaderboardMe, refetch: refetchLeaderboard } =
     useGlobalLeaderboard(5);
   const {
-    data: allCategories,
-    loading: categoriesLoading,
-    error: categoriesError,
-  } = useCategoriesExplore();
+    data: dailyQuizzes,
+    isLoading: dailyQuizzesLoading,
+    error: dailyQuizzesError,
+    refetch: refetchDailyQuizzes,
+  } = useDailyQuizzes();
+  const {
+    data: funFacts,
+    isLoading: funFactsLoading,
+    refetch: refetchFunFacts,
+  } = useHomeFunFacts();
   const [notificationsVisible, setNotificationsVisible] = useState(false);
   const [settingsDrawerVisible, setSettingsDrawerVisible] = useState(false);
   const {
@@ -123,6 +112,8 @@ export function HomePage() {
     const refresh = () => {
       void refetchAuthMe({ force: true });
       void refetchLeaderboard();
+      void refetchDailyQuizzes();
+      void refetchFunFacts();
       if (token?.trim()) {
         void refreshNotifications();
       }
@@ -135,7 +126,11 @@ export function HomePage() {
       window.removeEventListener('focus', onFocus);
       document.removeEventListener('visibilitychange', onFocus);
     };
-  }, [refetchAuthMe, refetchLeaderboard, refreshNotifications, token]);
+  }, [refetchAuthMe, refetchDailyQuizzes, refetchFunFacts, refetchLeaderboard, refreshNotifications, token]);
+
+  useEffect(() => {
+    void refetchDailyQuizzes();
+  }, [location.pathname, refetchDailyQuizzes]);
 
   const openNotifications = useCallback(async () => {
     setNotificationsVisible(true);
@@ -181,20 +176,16 @@ export function HomePage() {
     [rejectDuel, showAppError],
   );
 
-  const topThreeCategories = useMemo(() => allCategories.slice(0, 3), [allCategories]);
-
-  const goToCategory = useCallback(
-    (categorySlug: string) => {
-      if (
-        isVisitorSession({ token, hasRegisteredAccount }) &&
-        !canVisitorAccessCategory({ slug: categorySlug })
-      ) {
+  const goToDailyQuiz = useCallback(
+    (quiz: DailyQuizCard) => {
+      if (!quiz.isPlayable) return;
+      if (isVisitor) {
         navigate(Routes.LOGIN);
         return;
       }
-      navigate(`${Routes.CATEGORIES}/${categorySlug}`);
+      navigate(buildQuizEntryHref(quiz.id, { categorySlug: quiz.categorySlug }));
     },
-    [hasRegisteredAccount, navigate, token],
+    [isVisitor, navigate],
   );
 
   const goToDefisTile = useCallback(
@@ -214,15 +205,28 @@ export function HomePage() {
     [navigate],
   );
 
+  const insights = useMemo<HomeInsightItem[]>(() => {
+    const fromApi = mapFunFactsToInsights(funFacts?.items ?? []);
+    return fromApi.length > 0 ? fromApi : FALLBACK_HOME_INSIGHTS;
+  }, [funFacts?.items]);
+
+  const insightIdsKey = useMemo(() => insights.map((item) => item.id).join('|'), [insights]);
+
   useEffect(() => {
+    setActiveInsight(0);
+    carouselRef.current?.scrollTo({ left: 0, behavior: 'auto' });
+  }, [insightIdsKey]);
+
+  useEffect(() => {
+    if (insights.length <= 1) return;
     const mq = window.matchMedia('(min-width: 768px)');
     const tick = () => {
       if (mq.matches) return;
-      setActiveInsight((prev) => (prev + 1) % INSIGHTS.length);
+      setActiveInsight((prev) => (prev + 1) % insights.length);
     };
     const timer = window.setInterval(tick, 4200);
     return () => window.clearInterval(timer);
-  }, []);
+  }, [insights.length]);
 
   const headerVm = useMemo(() => {
     const profile = me?.profile;
@@ -316,10 +320,11 @@ export function HomePage() {
         <section className="home-section home-board-insights">
           <HomeSectionTitle title="Le savoir du jour" />
           <HomeInsightCarousel
-            insights={INSIGHTS}
+            insights={insights}
             activeIndex={activeInsight}
             onChangeIndex={setActiveInsight}
             carouselRef={carouselRef}
+            loading={funFactsLoading && insights.length === 0}
           />
         </section>
 
@@ -329,11 +334,11 @@ export function HomePage() {
             action="Voir tout"
             onActionPress={() => navigate(Routes.CATEGORIES)}
           />
-          <HomeDailyCategoriesSection
-            categories={topThreeCategories}
-            loading={categoriesLoading}
-            error={categoriesError}
-            onPressCategory={goToCategory}
+          <HomeDailyQuizSection
+            quizzes={dailyQuizzes?.items ?? []}
+            loading={dailyQuizzesLoading}
+            error={dailyQuizzesError}
+            onPressQuiz={goToDailyQuiz}
           />
         </section>
 
@@ -375,7 +380,7 @@ export function HomePage() {
         onClose={() => setNotificationsVisible(false)}
         onMarkAllRead={() => void markAllRead()}
         onPressItem={(item) => void handleNotificationPress(item)}
-        onDeleteRequest={requestDelete}
+        onSwipeDelete={requestDelete}
         onAcceptFriend={(id) => void acceptFriend(id)}
         onRejectFriend={(id) => void rejectFriend(id)}
         onAcceptDuel={(item) => void onAcceptDuelNotification(item)}

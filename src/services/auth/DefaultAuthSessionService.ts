@@ -3,8 +3,10 @@ import type { AuthSessionPayload } from '@app-types/authSession.types';
 import {
   clearStoredRefreshToken,
   clearStoredSessionExpiresAt,
+  clearStoredSessionHardExpiresAt,
   writeStoredRefreshToken,
   writeStoredSessionExpiresAt,
+  writeStoredSessionHardExpiresAt,
 } from './authTokenStorage';
 import type { IAccountRegistrationPersistence, IAuthTokenPersistence } from './authPersistence';
 import type { AuthBootstrapSnapshot, IAuthSessionService } from './IAuthSessionService';
@@ -26,7 +28,7 @@ export class DefaultAuthSessionService implements IAuthSessionService {
   async saveAuthenticatedSession(
     token: string,
     refreshToken?: string | null,
-    sessionMeta?: Pick<AuthSessionPayload, 'expires_at'> | null,
+    sessionMeta?: Pick<AuthSessionPayload, 'expires_at' | 'session_expires_at'> | null,
   ): Promise<void> {
     await this.tokens.writeToken(token);
     if (refreshToken?.trim()) {
@@ -35,6 +37,9 @@ export class DefaultAuthSessionService implements IAuthSessionService {
     if (typeof sessionMeta?.expires_at === 'number') {
       await writeStoredSessionExpiresAt(sessionMeta.expires_at);
     }
+    if (typeof sessionMeta?.session_expires_at === 'number') {
+      await writeStoredSessionHardExpiresAt(sessionMeta.session_expires_at);
+    }
     await this.accountFlags.writeHasRegisteredAccount(true);
   }
 
@@ -42,5 +47,6 @@ export class DefaultAuthSessionService implements IAuthSessionService {
     await this.tokens.clearToken();
     await clearStoredRefreshToken();
     await clearStoredSessionExpiresAt();
+    await clearStoredSessionHardExpiresAt();
   }
 }

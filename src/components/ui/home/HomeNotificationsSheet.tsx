@@ -1,6 +1,5 @@
 import type { AppNotification } from '@app-types/notification.types';
-import { formatNotificationTime, getNotificationVisual } from '@services/notifications/notificationPresentation';
-import { isPendingDuelRequest } from '@services/notifications/duelNotificationHelpers';
+import { NotificationListItem } from '@components/ui/settings/NotificationListItem';
 import { Icon } from '@components/ui/Icon';
 
 interface HomeNotificationsSheetProps {
@@ -12,7 +11,7 @@ interface HomeNotificationsSheetProps {
   onClose: () => void;
   onMarkAllRead: () => void;
   onPressItem: (item: AppNotification) => void;
-  onDeleteRequest: (item: AppNotification) => void;
+  onSwipeDelete: (item: AppNotification) => void;
   onAcceptFriend: (id: string) => void;
   onRejectFriend: (id: string) => void;
   onAcceptDuel: (item: AppNotification) => void;
@@ -29,7 +28,7 @@ export function HomeNotificationsSheet({
   onClose,
   onMarkAllRead,
   onPressItem,
-  onDeleteRequest,
+  onSwipeDelete,
   onAcceptFriend,
   onRejectFriend,
   onAcceptDuel,
@@ -63,7 +62,7 @@ export function HomeNotificationsSheet({
             <Icon name="chevron-right" size={16} color="#C9A000" />
           </button>
         </div>
-        <div className="home-sheet-body">
+        <div className="home-sheet-body home-notif-list">
           {loading && items.length === 0 ? (
             <p className="home-loading">Chargement…</p>
           ) : items.length === 0 ? (
@@ -77,92 +76,32 @@ export function HomeNotificationsSheet({
               </p>
             </div>
           ) : (
-            items.map((item) => {
-              const visual = getNotificationVisual(item.type);
-              const isFriend = item.type === 'friend_request' && !item.isRead;
-              const isDuel = isPendingDuelRequest(item);
-              return (
-                <article key={item.id} className="home-notif-card">
-                  <span
-                    className="home-settings-icon"
-                    style={{ background: visual.iconBackground }}
-                  >
-                    <Icon name={visual.icon} size={20} color={visual.iconColor} />
-                  </span>
-                  <div style={{ flex: 1, minWidth: 0 }}>
-                    <button
-                      type="button"
-                      onClick={() => onPressItem(item)}
-                      style={{
-                        background: 'transparent',
-                        border: 0,
-                        padding: 0,
-                        textAlign: 'left',
-                        width: '100%',
-                        cursor: 'pointer',
-                      }}
-                    >
-                      <strong style={{ color: '#212121' }}>{item.title}</strong>
-                      {item.body ? (
-                        <p style={{ margin: '4px 0 0', color: '#6b7280', fontSize: 13 }}>{item.body}</p>
-                      ) : null}
-                      <p style={{ margin: '4px 0 0', color: '#9ca3af', fontSize: 12 }}>
-                        {formatNotificationTime(item.createdAt)}
-                      </p>
-                    </button>
-                    {isFriend ? (
-                      <div className="home-notif-actions">
-                        <button
-                          type="button"
-                          className="home-notif-accept"
-                          disabled={actionId === item.id}
-                          onClick={() => onAcceptFriend(item.id)}
-                        >
-                          Accepter
-                        </button>
-                        <button
-                          type="button"
-                          className="home-notif-reject"
-                          disabled={actionId === item.id}
-                          onClick={() => onRejectFriend(item.id)}
-                        >
-                          Refuser
-                        </button>
-                      </div>
-                    ) : null}
-                    {isDuel ? (
-                      <div className="home-notif-actions">
-                        <button
-                          type="button"
-                          className="home-notif-accept"
-                          disabled={actionId === item.id}
-                          onClick={() => onAcceptDuel(item)}
-                        >
-                          Accepter
-                        </button>
-                        <button
-                          type="button"
-                          className="home-notif-reject"
-                          disabled={actionId === item.id}
-                          onClick={() => onRejectDuel(item)}
-                        >
-                          Refuser
-                        </button>
-                      </div>
-                    ) : null}
-                    <button
-                      type="button"
-                      className="home-sheet-link"
-                      style={{ color: '#E53935', marginTop: 6 }}
-                      onClick={() => onDeleteRequest(item)}
-                    >
-                      <Icon name="trash-2" size={14} color="#E53935" />
-                      Supprimer
-                    </button>
-                  </div>
-                </article>
-              );
-            })
+            items.map((item) => (
+              <NotificationListItem
+                key={item.id}
+                item={item}
+                compact
+                busy={actionId === item.id}
+                onPress={() => onPressItem(item)}
+                onAcceptFriend={
+                  item.type === 'friend_request' && !item.isRead
+                    ? () => onAcceptFriend(item.id)
+                    : undefined
+                }
+                onRejectFriend={
+                  item.type === 'friend_request' && !item.isRead
+                    ? () => onRejectFriend(item.id)
+                    : undefined
+                }
+                onAcceptDuel={
+                  item.type === 'duel_request' && !item.isRead ? () => onAcceptDuel(item) : undefined
+                }
+                onRejectDuel={
+                  item.type === 'duel_request' && !item.isRead ? () => onRejectDuel(item) : undefined
+                }
+                onSwipeDelete={() => onSwipeDelete(item)}
+              />
+            ))
           )}
         </div>
       </div>

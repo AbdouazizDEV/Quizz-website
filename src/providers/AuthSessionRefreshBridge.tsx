@@ -1,6 +1,9 @@
 import { useEffect, useRef } from 'react';
 
-import { refreshAuthSessionIfNeeded } from '@services/auth/refreshAuthSession';
+import {
+  PROACTIVE_REFRESH_INTERVAL_MS,
+  refreshAuthSessionIfNeeded,
+} from '@services/auth/refreshAuthSession';
 import { getAuthMeFromStore } from '@services/auth/authMeRepository';
 import { registerExpoPushDevice } from '@services/notifications/registerExpoPushDevice';
 import { syncStreakReminders } from '@services/notifications/streakReminderSync';
@@ -24,23 +27,31 @@ export function AuthSessionRefreshBridge() {
       });
     };
 
-    const refreshIfVisible = () => {
-      if (document.visibilityState !== 'visible') return;
+    const refreshSession = () => {
       if (!useAuthStore.getState().token?.trim()) return;
-      void refreshAuthSessionIfNeeded({ force: true }).then((result) => {
+      void refreshAuthSessionIfNeeded({ force: false }).then((result) => {
         if (result.ok) void runOfflineSync();
       });
+    };
+
+    const refreshIfVisible = () => {
+      if (document.visibilityState !== 'visible') return;
+      refreshSession();
       runStreakCheck();
       ensurePush();
     };
 
     runStreakCheck();
     ensurePush();
-    const interval = setInterval(runStreakCheck, 60_000);
+    refreshSession();
+
+    const streakInterval = setInterval(runStreakCheck, 60_000);
+    const refreshInterval = setInterval(refreshSession, PROACTIVE_REFRESH_INTERVAL_MS);
     document.addEventListener('visibilitychange', refreshIfVisible);
 
     return () => {
-      clearInterval(interval);
+      clearInterval(streakInterval);
+      clearInterval(refreshInterval);
       document.removeEventListener('visibilitychange', refreshIfVisible);
     };
   }, []);

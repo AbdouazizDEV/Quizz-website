@@ -148,7 +148,7 @@ export function NotificationsPage() {
               onRejectDuel={
                 item.type === 'duel_request' && !item.isRead ? () => void onRejectDuel(item) : undefined
               }
-              onDeleteRequest={() => requestDelete(item)}
+              onSwipeDelete={() => requestDelete(item)}
             />
           ))}
         </div>

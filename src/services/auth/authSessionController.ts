@@ -1,7 +1,11 @@
 import { AppConfig } from '@config';
 import { useAuthStore } from '@stores/authStore';
 import { useOnboardingRegisterStore } from '@stores/onboardingRegisterStore';
-import { refreshAuthSessionIfNeeded } from '@services/auth/refreshAuthSession';
+import {
+  isAccessTokenLikelyExpired,
+  refreshAuthSessionIfNeeded,
+  shouldForceLogoutAfterRefreshFailure,
+} from '@services/auth/refreshAuthSession';
 import { tryProcessPendingFriendInvite } from '@services/network/friendInviteService';
 
 import type { AuthMeResponse } from '@sdk';
@@ -9,15 +13,35 @@ import type { AuthSessionPayload } from '@app-types/authSession.types';
 import { clearAuthMeCache, loadAuthMe, setAuthMeCache } from '@services/auth/authMeRepository';
 
 import type { AuthBootstrapSnapshot } from './IAuthSessionService';
-import { readStoredRefreshToken } from './authTokenStorage';
+import {
+  clearStoredSessionHardExpiresAt,
+  readStoredRefreshToken,
+  readStoredSessionExpiresAt,
+  readStoredSessionHardExpiresAt,
+} from './authTokenStorage';
 import { authSessionService } from './authSessionServiceInstance';
 
 /** Charge l’état persisté et aligne le store Zustand (point d’entrée unique pour le splash). */
 export async function runAuthBootstrapAndSyncStore(): Promise<AuthBootstrapSnapshot> {
+  const hardExpiresAt = await readStoredSessionHardExpiresAt();
+  if (hardExpiresAt != null && Date.now() / 1000 >= hardExpiresAt) {
+    await authSessionService.signOut();
+    useAuthStore.getState().clearSession();
+    await clearAuthMeCache();
+    return { token: null, hasRegisteredAccount: true };
+  }
+
   const snapshot = await authSessionService.bootstrap();
   useAuthStore.getState().applyBootstrap(snapshot);
+
   if (snapshot.token?.trim()) {
-    await refreshAuthSessionIfNeeded({ force: false });
+    const storedExpiresAt = await readStoredSessionExpiresAt();
+    const accessExpired = isAccessTokenLikelyExpired(snapshot.token, storedExpiresAt);
+    const refreshed = await refreshAuthSessionIfNeeded({ force: accessExpired });
+    if (!refreshed.ok && shouldForceLogoutAfterRefreshFailure(refreshed, snapshot.token, storedExpiresAt)) {
+      await signOutAndSyncStore();
+      return { token: null, hasRegisteredAccount: true };
+    }
     void loadAuthMe({ force: false });
     void tryProcessPendingFriendInvite();
   } else {
@@ -31,7 +55,7 @@ export async function persistLoginAndSyncStore(
   token: string,
   refreshToken?: string | null,
   authMeSeed?: AuthMeResponse | null,
-  sessionMeta?: Pick<AuthSessionPayload, 'expires_at'> | null,
+  sessionMeta?: Pick<AuthSessionPayload, 'expires_at' | 'session_expires_at'> | null,
 ): Promise<void> {
   await authSessionService.saveAuthenticatedSession(token, refreshToken, sessionMeta);
   useAuthStore.getState().adoptAuthenticatedSession(token);
@@ -49,6 +73,11 @@ export async function persistPasskeyAuthResult(
 ): Promise<void> {
   const token = session.access_token?.trim();
   if (!token) throw new Error('Session absente.');
+
+  if (typeof session.session_expires_at !== 'number') {
+    await clearStoredSessionHardExpiresAt();
+  }
+
   await persistLoginAndSyncStore(token, session.refresh_token, authMeSeed, session);
 }
 

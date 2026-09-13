@@ -4,7 +4,7 @@ import { QRCodeSVG } from 'qrcode.react';
 
 import { Routes } from '@constants/Routes';
 import { shareFriendProfile } from '@services/network/shareFriendProfile';
-import { buildFriendQrProfile, encodeFriendQrDeepLink } from '@utils/friendQrPayload';
+import { buildFriendQrProfile, encodeFriendQrScanPayload } from '@utils/friendQrPayload';
 import { Icon } from '@components/ui/Icon';
 
 const REF_WIDTH = 390;
@@ -131,10 +131,9 @@ export function HomeHeaderCard({
   }, [displayNameWithEmoji, levelLabel, totalScoreDisplay, userId]);
 
   const qrValue = useMemo(
-    () => (qrProfile ? encodeFriendQrDeepLink(qrProfile) : ''),
+    () => (qrProfile ? encodeFriendQrScanPayload(qrProfile) : ''),
     [qrProfile],
   );
-  const miniQrValue = qrValue || 'quizzplus://profile';
 
   const toggleFlip = useCallback(() => {
     if (isDesktop) return;
@@ -166,7 +165,11 @@ export function HomeHeaderCard({
           borderRadius: Math.round(sizes.miniQrBox * 0.2),
         }}
       >
-        <QRCodeSVG value={miniQrValue} size={sizes.miniQrInner} bgColor="transparent" fgColor="#2A2D5E" />
+        {qrValue ? (
+          <QRCodeSVG value={qrValue} size={sizes.miniQrInner} bgColor="transparent" fgColor="#2A2D5E" />
+        ) : (
+          <Icon name="user-x" size={sizes.miniQrInner * 0.45} color="#9CA3CF" />
+        )}
         <span className="home-mini-qr-accent" />
       </button>
 

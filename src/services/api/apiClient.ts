@@ -1,11 +1,14 @@
 import axios, { AxiosInstance, InternalAxiosRequestConfig } from 'axios';
 import { AppConfig } from '../../../config';
-import { refreshAuthSessionIfNeeded } from '@services/auth/refreshAuthSession';
+import {
+  isAccessTokenLikelyExpired,
+  refreshAuthSessionIfNeeded,
+  shouldForceLogoutAfterRefreshFailure,
+} from '@services/auth/refreshAuthSession';
+import { readStoredSessionExpiresAt } from '@services/auth/authTokenStorage';
 import { useAuthStore } from '@stores/authStore';
 
 type RetryConfig = InternalAxiosRequestConfig & { _retry?: boolean };
-
-let refreshInFlight: ReturnType<typeof refreshAuthSessionIfNeeded> | null = null;
 
 class ApiClient {
   private static instance: AxiosInstance;
@@ -21,9 +24,16 @@ class ApiClient {
         },
       });
 
-      ApiClient.instance.interceptors.request.use((config) => {
-        const token = useAuthStore.getState().token?.trim();
+      ApiClient.instance.interceptors.request.use(async (config) => {
+        let token = useAuthStore.getState().token?.trim();
         if (token) {
+          const storedExpiresAt = await readStoredSessionExpiresAt();
+          if (isAccessTokenLikelyExpired(token, storedExpiresAt)) {
+            const refreshed = await refreshAuthSessionIfNeeded({ force: true });
+            if (refreshed.ok) {
+              token = refreshed.accessToken;
+            }
+          }
           config.headers.Authorization = `Bearer ${token}`;
         }
         return config;
@@ -37,10 +47,9 @@ class ApiClient {
 
           if (status === 401 && original && !original._retry) {
             original._retry = true;
-            refreshInFlight ??= refreshAuthSessionIfNeeded({ force: true });
-            const refreshed = await refreshInFlight.finally(() => {
-              refreshInFlight = null;
-            });
+            const previousToken = useAuthStore.getState().token;
+            const storedExpiresAt = await readStoredSessionExpiresAt();
+            const refreshed = await refreshAuthSessionIfNeeded({ force: true });
 
             if (refreshed.ok) {
               original.headers = original.headers ?? {};
@@ -48,7 +57,10 @@ class ApiClient {
               return ApiClient.instance(original);
             }
 
-            useAuthStore.getState().clearSession();
+            if (shouldForceLogoutAfterRefreshFailure(refreshed, previousToken, storedExpiresAt)) {
+              const { signOutAndSyncStore } = await import('@services/auth/authSessionController');
+              await signOutAndSyncStore();
+            }
           }
 
           if (AppConfig.ENABLE_LOGS) {
