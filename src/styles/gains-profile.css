@@ -1312,16 +1312,31 @@
   margin: 0;
   font-size: 20px;
   line-height: 32px;
-  font-weight: 700;
+  font-weight: 800;
+  font-family: 'Nunito', system-ui, sans-serif;
   color: #212121;
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
 }
 
 .profile-identity-text p {
   margin: 0;
   font-size: 14px;
   line-height: 20px;
-  font-weight: 500;
+  font-weight: 400;
+  font-family: 'Nunito', system-ui, sans-serif;
   color: #616161;
+}
+
+.profile-identity-level {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 4px;
+  font-weight: 800;
+  color: #212121;
+  white-space: nowrap;
 }
 
 .profile-identity-cta {
@@ -1477,6 +1492,17 @@
   margin: 0;
   font-size: 15px;
   color: #424242;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.profile-level-stat {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
 }
 
 .profile-insight-remaining {
@@ -2569,7 +2595,8 @@
 .settings-leading-title {
   margin: 0;
   font-size: 20px;
-  font-weight: 700;
+  font-weight: 800;
+  font-family: 'Nunito', system-ui, sans-serif;
   line-height: 32px;
   color: #212121;
 }
@@ -3893,6 +3920,7 @@
   color: #fff;
   box-sizing: border-box;
   overflow-x: clip;
+  font-family: 'Nunito', system-ui, sans-serif;
 }
 
 .premium-inner {
@@ -3936,6 +3964,7 @@
   margin: 0;
   font-size: 15px;
   line-height: 22px;
+  font-weight: 600;
   color: #616161;
 }
 
@@ -3976,6 +4005,7 @@
 .premium-benefit p {
   margin: 4px 0 0;
   font-size: 13px;
+  font-weight: 400;
   color: #616161;
 }
 

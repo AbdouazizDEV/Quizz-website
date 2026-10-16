@@ -64,9 +64,12 @@ export class NestQuizSessionPersistence implements IQuizSessionPersistence {
     answers: QuizAnswerRecord[];
   }): QuizSessionCompleteBody {
     const answers = mapAnswers(params.answers);
+    const express = sessionStorage.getItem('quizz.express') === '1';
+    if (express) sessionStorage.removeItem('quizz.express');
+    const kind = express ? 'express' : 'standard';
     return answers.length > 0
-      ? { score: params.earnedPoints, answers }
-      : { score: params.earnedPoints };
+      ? { score: params.earnedPoints, answers, mode: 'scored' as const, kind: kind as 'standard' | 'express' }
+      : { score: params.earnedPoints, mode: 'scored' as const, kind: kind as 'standard' | 'express' };
   }
 
   private async persistOnline(params: {

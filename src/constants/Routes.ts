@@ -40,6 +40,8 @@ export const Routes = {
   PREMIUM_PLANS: '/premium/plans',
   PREMIUM_PAYMENT: '/premium/payment',
   PREMIUM_SUCCESS: '/premium/success',
+  ARENA: '/arena',
+  CARNET: '/carnet',
 } as const;
 
 export function buildUserProfileHref(userId: string): string {
@@ -48,13 +50,21 @@ export function buildUserProfileHref(userId: string): string {
 
 export function buildQuizEntryHref(
   quizId: string,
-  options?: { categorySlug?: string | null; duelId?: string | null; challengeId?: string | null },
+  options?: {
+    categorySlug?: string | null;
+    duelId?: string | null;
+    challengeId?: string | null;
+    competitionId?: string | null;
+    matchId?: string | null;
+  },
 ): string {
   const id = encodeURIComponent(quizId);
   const params = new URLSearchParams();
   if (options?.categorySlug) params.set('categorySlug', options.categorySlug);
   if (options?.duelId) params.set('duelId', options.duelId);
   if (options?.challengeId) params.set('challengeId', options.challengeId);
+  if (options?.competitionId) params.set('competitionId', options.competitionId);
+  if (options?.matchId) params.set('matchId', options.matchId);
   const qs = params.toString();
   return qs ? `/quiz/${id}?${qs}` : `/quiz/${id}`;
 }

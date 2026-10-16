@@ -1,5 +1,6 @@
 import type { LeaderboardItem } from '@app-types/leaderboard.types';
 import { ScoreboardRow } from '@components/ui/profile/ScoreboardRow';
+import type { PlayerBadgeView } from '@constants/westAfricanBadges';
 
 interface ScoreboardListProps {
   items: LeaderboardItem[];
@@ -7,6 +8,7 @@ interface ScoreboardListProps {
   loading: boolean;
   error?: string;
   onRetry?: () => void;
+  featuredBadge?: PlayerBadgeView | null;
 }
 
 export function ScoreboardList({
@@ -15,6 +17,7 @@ export function ScoreboardList({
   loading,
   error,
   onRetry,
+  featuredBadge,
 }: ScoreboardListProps) {
   if (loading) {
     return (
@@ -44,7 +47,12 @@ export function ScoreboardList({
   return (
     <div className="scoreboard-list">
       {items.map((item) => (
-        <ScoreboardRow key={item.id} item={item} highlighted={item.id === currentUserId} />
+        <ScoreboardRow
+          key={item.id}
+          item={item}
+          highlighted={item.id === currentUserId}
+          featuredBadge={item.id === currentUserId ? featuredBadge : null}
+        />
       ))}
     </div>
   );

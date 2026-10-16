@@ -18,6 +18,8 @@ export function isLegacyQuizSessionCompleteUrl(url: string): boolean {
 export interface QuizSessionCompleteBody {
   score: number;
   answers?: { questionId: string; selected: string; correct: boolean }[];
+  mode?: 'scored' | 'practice';
+  kind?: 'standard' | 'express';
 }
 
 export interface QuizSessionCompleteResponse {

@@ -1,4 +1,6 @@
 import type { ProfileStatItem } from '@app-types/profile.types';
+import { LevelBadge } from '@components/ui/home/LevelBadge';
+import { formatLevelCodeLabel } from '@utils/levelDisplay';
 
 interface ProfileStatsGridProps {
   stats: ProfileStatItem[];
@@ -33,7 +35,14 @@ function StatCell({ item, showDivider }: { item: ProfileStatItem; showDivider: b
   return (
     <>
       <div className="profile-stats-cell">
-        <b>{item.valueLabel}</b>
+        {item.id === 'level' ? (
+          <b className="profile-level-stat">
+            <LevelBadge code={item.valueLabel} />
+            {formatLevelCodeLabel(item.valueLabel).split('·').pop()?.trim()}
+          </b>
+        ) : (
+          <b>{item.valueLabel}</b>
+        )}
         <span>{item.caption}</span>
       </div>
       {showDivider ? <span className="profile-stats-vline" aria-hidden /> : null}

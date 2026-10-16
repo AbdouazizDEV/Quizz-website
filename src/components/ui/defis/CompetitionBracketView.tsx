@@ -24,7 +24,9 @@ function resolveRoundTitle(round: CompetitionBracketRound, index: number, total:
   }
   if (matchCount === 4 || /1\/4|quart/i.test(label)) return '1/4';
   if (matchCount === 8 || /1\/8|huitième/i.test(label)) return '1/8';
-  if (/1\/8|huitième|1\/4|quart|demi|finale/i.test(label)) return label;
+  if (matchCount === 16 || /1\/16|seizième/i.test(label)) return '1/16';
+  if (/poule/i.test(label)) return 'Poules';
+  if (/1\/8|huitième|1\/4|quart|demi|finale|seizième|poule/i.test(label)) return label;
   return label || `Tour ${round.round}`;
 }
 

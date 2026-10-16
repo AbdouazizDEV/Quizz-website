@@ -10,6 +10,7 @@ import { useAuthMe } from '@hooks/useAuthMe';
 import { useQuestionTimer } from '@hooks/useQuestionTimer';
 import { recordChallengeParticipation } from '@services/defis/participateChallenge.service';
 import { submitDuelScore } from '@services/defis/duelRepository';
+import { submitCompetitionMatchScore } from '@services/defis/competitionRepository';
 import { invalidateAuthMeCache } from '@services/auth/authMeRepository';
 import { getQuizSessionPersistence } from '@services/quiz/session/quizSessionPersistenceInstance';
 import { triggerQuizCorrectFeedback } from '@services/quiz/play/triggerQuizCorrectFeedback';
@@ -43,6 +44,9 @@ export function QuizPlayPage() {
   const reset = useQuizPlaySessionStore((s) => s.reset);
   const duelId = useQuizPlaySessionStore((s) => s.duelId) ?? params.get('duelId');
   const challengeId = useQuizPlaySessionStore((s) => s.challengeId) ?? params.get('challengeId');
+  const competitionId =
+    useQuizPlaySessionStore((s) => s.competitionId) ?? params.get('competitionId');
+  const matchId = useQuizPlaySessionStore((s) => s.matchId) ?? params.get('matchId');
   const expiredForQuestionRef = useRef(false);
   const correctFeedbackKeyRef = useRef<string | null>(null);
   const wrongFeedbackKeyRef = useRef<string | null>(null);
@@ -175,9 +179,35 @@ export function QuizPlayPage() {
       }
     }
 
+    if (competitionId && quizId) {
+      try {
+        const result = await submitCompetitionMatchScore(competitionId, {
+          score: earned,
+          matchId: matchId && !matchId.startsWith('g') ? matchId : undefined,
+          quizId,
+        });
+        if (result.waitingForOthers) {
+          notifyUser('Tournoi', 'Score enregistré — en attente des autres joueurs.');
+        } else if (result.tiebreak) {
+          notifyUser('Tournoi', 'Égalité ! Un quiz de barrage va être proposé.');
+        } else if (result.advanced) {
+          notifyUser('Tournoi', 'Manche terminée — qualifiés mis à jour.');
+        }
+        await queryClient.invalidateQueries({ queryKey: ['competition'] });
+        await queryClient.invalidateQueries({ queryKey: ['competition-bracket'] });
+        await queryClient.invalidateQueries({ queryKey: ['competitions'] });
+        await queryClient.invalidateQueries({ queryKey: ['defis-dashboard'] });
+      } catch (error) {
+        const message = error instanceof Error ? error.message : 'Score tournoi non enregistré.';
+        if (!/déjà/i.test(message)) showAppError(message, { title: 'Tournoi' });
+      }
+    }
+
     const qs = new URLSearchParams();
     if (duelId) qs.set('duelId', duelId);
     if (challengeId) qs.set('challengeId', challengeId);
+    if (competitionId) qs.set('competitionId', competitionId);
+    if (matchId) qs.set('matchId', matchId);
     navigate(`/quiz/${quizId}/congrats${qs.toString() ? `?${qs}` : ''}`, { replace: true });
   };
 

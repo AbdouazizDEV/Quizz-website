@@ -16,6 +16,8 @@ export function QuizEntryPage() {
   const categorySlug = params.get('categorySlug');
   const duelId = params.get('duelId');
   const challengeId = params.get('challengeId');
+  const competitionId = params.get('competitionId');
+  const matchId = params.get('matchId');
   const bootstrap = useQuizPlaySessionStore((s) => s.bootstrap);
   const reset = useQuizPlaySessionStore((s) => s.reset);
   const [error, setError] = useState<string | null>(null);
@@ -35,10 +37,12 @@ export function QuizEntryPage() {
         categorySlug,
         duelId,
         challengeId,
+        competitionId,
+        matchId,
       );
       navigate(`/quiz/${quizId}/play`, { replace: true });
     },
-    [bootstrap, categorySlug, challengeId, duelId, navigate, quizId],
+    [bootstrap, categorySlug, challengeId, competitionId, duelId, matchId, navigate, quizId],
   );
 
   useEffect(() => {

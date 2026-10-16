@@ -89,6 +89,9 @@ export interface CompetitionBracketRound {
   round: number;
   label: string;
   matches: CompetitionBracketMatch[];
+  /** Classement de poule / groupe (tournois ≤4). */
+  standings?: CompetitionBracketPlayer[];
+  mode?: 'group' | 'knockout';
 }
 
 export interface CompetitionBracket {

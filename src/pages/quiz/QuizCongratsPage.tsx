@@ -17,6 +17,7 @@ export function QuizCongratsPage() {
   const [params] = useSearchParams();
   const duelId = params.get('duelId');
   const challengeId = params.get('challengeId');
+  const competitionId = params.get('competitionId');
   const payload = useQuizPlaySessionStore((s) => s.payload);
   const answers = useQuizPlaySessionStore((s) => s.answers);
   const sessionPoints = useQuizPlaySessionStore((s) => s.sessionPoints);
@@ -27,6 +28,7 @@ export function QuizCongratsPage() {
   const correctCount = answers.filter((a) => a.isCorrect).length;
   const total = payload?.questions.length ?? answers.length;
   const maxPoints = payload?.questions.reduce((sum, q) => sum + pointsForDifficulty(q.difficulty), 0) ?? 0;
+  const isTournament = Boolean(competitionId);
 
   useEffect(() => {
     void triggerQuizCongratsSound(correctCount, total);
@@ -72,34 +74,43 @@ export function QuizCongratsPage() {
           </div>
         </div>
         <div className="quiz-congrats-actions">
+          {!isTournament ? (
+            <button
+              type="button"
+              className="btn btn-primary"
+              onClick={() => {
+                void getQuizScoreSharePort().shareScore({
+                  quizTitle: payload?.quiz.title ?? 'Quiz',
+                  score: sessionPoints,
+                  correctCount,
+                  total,
+                });
+              }}
+            >
+              <Icon name="share-2" /> Partager
+            </button>
+          ) : null}
           <button
             type="button"
-            className="btn btn-primary"
-            onClick={() => {
-              void getQuizScoreSharePort().shareScore({
-                quizTitle: payload?.quiz.title ?? 'Quiz',
-                score: sessionPoints,
-                correctCount,
-                total,
-              });
-            }}
-          >
-            <Icon name="share-2" /> Partager
-          </button>
-          <button
-            type="button"
-            className="btn btn-ghost"
+            className={isTournament ? 'btn btn-primary' : 'btn btn-ghost'}
             onClick={() => {
               reset();
-              if (duelId) navigate(DefisRoutes.duelResult(duelId));
+              if (competitionId) navigate(DefisRoutes.tournoiBracket(competitionId));
+              else if (duelId) navigate(DefisRoutes.duelResult(duelId));
               else if (challengeId) navigate(DefisRoutes.challengeDetail(challengeId));
               else if (categorySlug) navigate(`${Routes.CATEGORIES}/${categorySlug}`);
               else navigate(Routes.HOME);
             }}
           >
-            Terminer
+            {isTournament ? 'Voir le bracket' : 'Terminer'}
           </button>
         </div>
+        {isTournament ? (
+          <p className="muted" style={{ marginTop: 12, textAlign: 'center' }}>
+            Votre score est enregistré. Vous ne pouvez pas rejouer tant que les autres n’ont pas
+            terminé et que les qualifiés ne sont pas tirés.
+          </p>
+        ) : null}
       </div>
     </div>
   );

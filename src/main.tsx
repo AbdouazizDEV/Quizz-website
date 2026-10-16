@@ -12,6 +12,7 @@ import './styles/defis.css';
 import './styles/gains-profile.css';
 import './styles/network.css';
 import './styles/legal.css';
+import './styles/badges.css';
 
 registerSW({ immediate: true });
 

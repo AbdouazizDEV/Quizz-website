@@ -2,6 +2,7 @@ import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 
 import type { ProfileTabId, ViewerRelationship } from '@app-types/profile.types';
+import { BadgeChip } from '@components/ui/badges/BadgeChip';
 import { CoverPhotoChangeModal } from '@components/ui/profile/CoverPhotoChangeModal';
 import { ProfileAvatarActionSheet } from '@components/ui/profile/ProfileAvatarActionSheet';
 import { ProfileHeaderSection } from '@components/ui/profile/ProfileHeaderSection';
@@ -11,6 +12,7 @@ import { ProfileTabContent } from '@components/ui/profile/ProfileTabContent';
 import { StatisticsNavbar } from '@components/ui/statistics/StatisticsNavbar';
 import { Routes } from '@constants/Routes';
 import { useAuthMe } from '@hooks/useAuthMe';
+import { usePlayerBadges } from '@hooks/usePlayerBadges';
 import { useNetworkStatus } from '@hooks/useNetworkStatus';
 import { useProfileScreenData } from '@hooks/useProfileScreenData';
 import { notifyUser } from '@platform/notify';
@@ -20,6 +22,8 @@ import { uploadMyAvatar } from '@services/profile/profileAvatarApi';
 import { uploadMyCover } from '@services/profile/profileCoverApi';
 import { useAuthStore } from '@stores/authStore';
 import { getLevelProgressDetail } from '@utils/levelDisplay';
+import { pickFeaturedBadge } from '@constants/westAfricanBadges';
+import { premiumStatusPresentation } from '@utils/premiumStatusCopy';
 import { dataUrlToImageBase64, pickImageAsDataUrl } from '@utils/pickImageAsBase64';
 
 interface ProfileViewProps {
@@ -32,7 +36,10 @@ export function ProfileView({ userId }: ProfileViewProps) {
   const token = useAuthStore((s) => s.token);
   const viewedUserId = userId?.trim() || undefined;
   const isExternalProfile = Boolean(viewedUserId);
-  const { data: me, refetch: refetchAuthMe } = useAuthMe();
+  const { data: me, loading: meLoading, error: meError, refetch: refetchAuthMe } = useAuthMe();
+  const { badges } = usePlayerBadges();
+  const earnedBadges = useMemo(() => badges.filter((badge) => badge.earned), [badges]);
+  const featuredBadge = useMemo(() => pickFeaturedBadge(badges), [badges]);
   const { data, loading, error, refetch } = useProfileScreenData(
     viewedUserId,
     !isExternalProfile && !token,
@@ -219,9 +226,26 @@ export function ProfileView({ userId }: ProfileViewProps) {
               progressDetail={isExternalProfile ? null : progressDetail}
               quizzesCompleted={data.quizTotalCount}
               streakDays={me?.profile?.streak_days ?? 0}
-              isPremium={Boolean(me?.profile?.is_premium)}
-              premiumDaysLeft={9}
+              isPremium={me?.premium?.status === 'active'}
+              premiumTitle={
+                premiumStatusPresentation({
+                  loading: meLoading,
+                  error: Boolean(meError),
+                  premium: me?.premium,
+                }).title
+              }
+              premiumBody={
+                premiumStatusPresentation({
+                  loading: meLoading,
+                  error: Boolean(meError),
+                  premium: me?.premium,
+                }).body
+              }
               coverEditable={!isExternalProfile}
+              earnedBadges={!isExternalProfile ? earnedBadges : undefined}
+              badgeSlot={
+                !isExternalProfile && featuredBadge ? <BadgeChip badge={featuredBadge} /> : null
+              }
             />
           </div>
           <div className="profile-board-content">

@@ -18,6 +18,9 @@
   --radius: 18px;
   --shadow: 0 10px 30px rgba(26, 26, 46, 0.08);
   --font: 'Nunito', system-ui, sans-serif;
+  --font-regular: 400;
+  --font-semibold: 600;
+  --font-extrabold: 800;
 }
 
 *,
@@ -35,6 +38,7 @@ body,
 
 body {
   font-family: var(--font);
+  font-weight: var(--font-semibold);
   background: var(--background);
   color: var(--text);
   -webkit-font-smoothing: antialiased;

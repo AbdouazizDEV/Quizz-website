@@ -12,6 +12,8 @@ import { CreateAccountWorkplacePage } from '@pages/auth/CreateAccountWorkplacePa
 import { CreateAccountProfilePage } from '@pages/auth/CreateAccountProfilePage';
 import { ForgotPasswordPage } from '@pages/auth/ForgotPasswordPage';
 import { HomePage } from '@pages/home/HomePage';
+import { ArenaPage } from '@pages/arena/ArenaPage';
+import { CarnetPage } from '@pages/progression/CarnetPage';
 import { CategoriesPage } from '@pages/quiz/CategoriesPage';
 import { CategoryDetailPage } from '@pages/quiz/CategoryDetailPage';
 import { QuizEntryPage } from '@pages/quiz/QuizEntryPage';
@@ -79,6 +81,8 @@ export function AppRoutes() {
       <Route element={<ProtectedRoute />}>
         <Route element={<AppShell />}>
           <Route path="/home" element={<HomePage />} />
+          <Route path="/arena" element={<ArenaPage />} />
+          <Route path="/carnet" element={<CarnetPage />} />
           <Route path="/categories" element={<CategoriesPage />} />
           <Route path="/categories/:slug" element={<CategoryDetailPage />} />
           <Route path="/defis" element={<DefisHubPage />} />

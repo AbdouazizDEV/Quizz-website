@@ -12,9 +12,11 @@ import { notifyUser } from '@platform/notify';
 import { useAppError } from '@providers/AppErrorProvider';
 import {
   fetchCompetitionById,
+  drawCompetitionMatch,
   registerForCompetition,
   unregisterFromCompetition,
 } from '@services/defis/competitionRepository';
+import { buildQuizEntryHref } from '@constants/Routes';
 import { resolveEffectiveCompetitionStatus } from '@utils/defis/competitionDisplay';
 
 export function TournoiDetailPage() {
@@ -87,6 +89,35 @@ export function TournoiDetailPage() {
         unregisterError instanceof Error ? unregisterError.message : 'Désinscription impossible.',
         { title: 'Tournoi' },
       );
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const onPlayMatch = async () => {
+    if (!userId || !competitionId || busy) return;
+    setBusy(true);
+    try {
+      const draw = await drawCompetitionMatch(competitionId);
+      notifyUser(
+        'Tournoi',
+        `Match ${draw.phase ?? ''} · ${draw.questionsCount} questions tirées`,
+      );
+      navigate(
+        buildQuizEntryHref(draw.quizId, {
+          competitionId,
+          matchId: draw.matchId,
+        }),
+      );
+    } catch (playError) {
+      const message =
+        playError instanceof Error ? playError.message : 'Impossible de démarrer le match.';
+      if (/déjà joué|attendez|bracket/i.test(message)) {
+        notifyUser('Tournoi', message);
+        navigate(DefisRoutes.tournoiBracket(competitionId));
+      } else {
+        showAppError(message, { title: 'Tournoi' });
+      }
     } finally {
       setBusy(false);
     }
@@ -193,8 +224,13 @@ export function TournoiDetailPage() {
               Jouez quand vous voulez avant la fin du tournoi. Chaque victoire vous rapproche du
               titre.
             </p>
-            <button type="button" className="tournoi-match-cta" disabled title="Bientôt disponible">
-              Jouer mon match →
+            <button
+              type="button"
+              className="tournoi-match-cta"
+              disabled={busy}
+              onClick={() => void onPlayMatch()}
+            >
+              {busy ? 'Tirage…' : 'Jouer mon match →'}
             </button>
           </section>
           <button

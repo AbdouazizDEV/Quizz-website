@@ -15,7 +15,11 @@ export function GainsExpressCta({ onPress }: GainsExpressCtaProps) {
       <button
         type="button"
         className="gains-express"
-        onClick={() => (onPress ? onPress() : navigate(Routes.CATEGORIES))}
+        onClick={() => {
+          sessionStorage.setItem('quizz.express', '1');
+          if (onPress) onPress();
+          else navigate(Routes.CATEGORIES);
+        }}
       >
         <span className="gains-express-icon">
           <Icon name="zap" size={22} color="#1F2347" />

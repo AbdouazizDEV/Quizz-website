@@ -1,7 +1,14 @@
+import type { ReactNode } from 'react';
+
+import { LevelBadge } from '@components/ui/home/LevelBadge';
+import { formatLevelCodeLabel } from '@utils/levelDisplay';
+
 interface ProfileIdentityRowProps {
   displayName: string;
   handle: string;
   avatarUri: string;
+  badgeSlot?: ReactNode;
+  levelCode?: string;
   actionLabel?: string;
   actionVariant?: 'primary' | 'pending' | 'friend';
   actionDisabled?: boolean;
@@ -18,6 +25,8 @@ export function ProfileIdentityRow({
   actionDisabled = false,
   onEditProfile,
   onPressAvatar,
+  badgeSlot,
+  levelCode,
 }: ProfileIdentityRowProps) {
   return (
     <div className="profile-identity-row">
@@ -32,8 +41,17 @@ export function ProfileIdentityRow({
           </span>
         )}
         <div className="profile-identity-text">
-          <h2>{displayName}</h2>
+          <h2>
+            {displayName}
+            {badgeSlot}
+          </h2>
           <p>{handle}</p>
+          {levelCode ? (
+            <p className="profile-identity-level">
+              <LevelBadge code={levelCode} />
+              {formatLevelCodeLabel(levelCode).split('·').pop()?.trim()}
+            </p>
+          ) : null}
         </div>
       </div>
       <button

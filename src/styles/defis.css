@@ -2898,6 +2898,9 @@
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
 }
 
 .scoreboard-score {

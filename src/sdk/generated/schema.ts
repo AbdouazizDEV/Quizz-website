@@ -272,9 +272,24 @@ export interface components {
             streak_days: number;
             is_premium: boolean;
         };
+        PremiumContract: {
+            /** @enum {string} */
+            status: "inactive" | "active" | "expired";
+            /** @enum {string} */
+            source: "arena" | "classic_trial" | "paid" | "manual" | null;
+            edition_key: string | null;
+            activated_at: string | null;
+            expires_at: string | null;
+            expired: boolean;
+            days_remaining: number | null;
+            timezone: string;
+            /** @enum {string} */
+            arena_access: "free";
+        };
         AuthMeResponse: {
             user: components["schemas"]["AuthUser"];
             profile?: components["schemas"]["ProfileRow"] | null;
+            premium?: components["schemas"]["PremiumContract"] | null;
         };
     };
     responses: {

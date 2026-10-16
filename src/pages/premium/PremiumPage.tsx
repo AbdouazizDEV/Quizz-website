@@ -5,9 +5,9 @@ import { PremiumPageShell } from '@components/ui/premium/PremiumPageShell';
 import { Routes } from '@constants/Routes';
 
 const BENEFITS = [
-  { icon: 'zap', title: 'Sans publicité', body: 'Enchaîne les quiz sans interruption.' },
-  { icon: 'award', title: 'Avantages exclusifs', body: 'Plus de replays et un badge Premium.' },
-  { icon: 'trending-up', title: 'Boost classement', body: 'Gagne en visibilité sur le scoreboard.' },
+  { icon: 'award', title: 'Carnet d’erreurs', body: 'Revois tes ratés, l’explication, et refais seulement ceux-là. Sans points.' },
+  { icon: 'zap', title: 'Entraînement', body: 'Replays sans plafond, une session Express en plus, un gel de série.' },
+  { icon: 'trending-up', title: 'Identité', body: 'Badge Or du Sahel, cadres, thèmes et avatars d’Afrique de l’Ouest.' },
 ] as const;
 
 export function PremiumPage() {
@@ -23,8 +23,8 @@ export function PremiumPage() {
     >
       <div className="premium-board">
         <section className="premium-hero gains-fade">
-          <h2>Jouez sans publicité ni restriction.</h2>
-          <p>Défis exclusifs, plus de replays et un boost de visibilité au classement.</p>
+          <h2>Entraîne-toi mieux. Le classement reste le même.</h2>
+          <p>Le Premium donne des outils pour comprendre tes erreurs. Il n’ajoute aucun point.</p>
           <button type="button" className="premium-cta" onClick={() => navigate(Routes.PREMIUM_PLANS)}>
             Voir les plans
           </button>

@@ -4,8 +4,11 @@ import { useNavigate } from 'react-router-dom';
 import type { ProfileStatItem } from '@app-types/profile.types';
 import { Icon } from '@components/ui/Icon';
 import { ProfileCircularPerformance } from '@components/ui/profile/ProfileCircularPerformance';
+import { BadgeChip } from '@components/ui/badges/BadgeChip';
 import { Routes } from '@constants/Routes';
-import type { LevelProgressDetail } from '@utils/levelDisplay';
+import type { PlayerBadgeView } from '@constants/westAfricanBadges';
+import { LevelBadge } from '@components/ui/home/LevelBadge';
+import { formatLevelCodeLabel, type LevelProgressDetail } from '@utils/levelDisplay';
 
 const AUTO_INTERVAL_MS = 8000;
 const SLIDE_IDS = ['progression', 'statistiques', 'badges', 'premium'] as const;
@@ -17,6 +20,9 @@ interface ProfileInsightsCarouselProps {
   streakDays: number;
   isPremium: boolean;
   premiumDaysLeft?: number;
+  premiumTitle?: string;
+  premiumBody?: string;
+  earnedBadges?: PlayerBadgeView[];
 }
 
 function SlideChrome({
@@ -48,6 +54,9 @@ export function ProfileInsightsCarousel({
   streakDays,
   isPremium,
   premiumDaysLeft = 0,
+  premiumTitle,
+  premiumBody,
+  earnedBadges = [],
 }: ProfileInsightsCarouselProps) {
   const navigate = useNavigate();
   const [index, setIndex] = useState(0);
@@ -85,7 +94,8 @@ export function ProfileInsightsCarousel({
       node: (
         <SlideChrome icon="bookmark" title="Progression">
           <p className="profile-insight-level">
-            Niveau {progress.levelNumber}
+            <LevelBadge code={progress.levelCode} />
+            {formatLevelCodeLabel(progress.levelCode)}
             {progress.nextLevelNumber ? ` → Niveau ${progress.nextLevelNumber}` : ' · Max'}
           </p>
           <p className="profile-insight-remaining">{progress.remainingLabel}</p>
@@ -126,10 +136,16 @@ export function ProfileInsightsCarousel({
       id: 'badges',
       node: (
         <SlideChrome icon="award" title="Badges">
-          <p className="profile-insight-copy">
-            Curieux du jour · Série {Math.max(streakDays, 1)} jours · Top 10 hebdo
-          </p>
-          <button type="button" className="profile-insight-btn" onClick={() => navigate(Routes.STATISTICS)}>
+          {earnedBadges.length > 0 ? (
+            <p className="profile-insight-copy profile-insight-badges">
+              {earnedBadges.map((badge) => (
+                <BadgeChip key={badge.code} badge={badge} />
+              ))}
+            </p>
+          ) : (
+            <p className="profile-insight-copy">Aucun médaillon obtenu pour l’instant.</p>
+          )}
+          <button type="button" className="profile-insight-btn" onClick={() => navigate(Routes.CARNET)}>
             Voir mes badges
           </button>
         </SlideChrome>
@@ -138,11 +154,12 @@ export function ProfileInsightsCarousel({
     {
       id: 'premium',
       node: (
-        <SlideChrome icon="star" title="Essai premium">
+        <SlideChrome icon="star" title={premiumTitle ?? 'Essai premium'}>
           <p className="profile-insight-copy">
-            {isPremium
-              ? `Actif${premiumDaysLeft > 0 ? ` · ${premiumDaysLeft} jours restants` : ''}`
-              : 'Non activé · Débloquez plus de quiz'}
+            {premiumBody ??
+              (isPremium
+                ? `Actif${premiumDaysLeft > 0 ? ` · ${premiumDaysLeft} jours restants` : ''}`
+                : 'Non activé · Débloquez plus de quiz')}
           </p>
           <button type="button" className="profile-insight-btn" onClick={() => navigate(Routes.PREMIUM)}>
             Voir les avantages

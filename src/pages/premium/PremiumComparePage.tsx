@@ -5,13 +5,15 @@ import { PremiumPageShell } from '@components/ui/premium/PremiumPageShell';
 import { Routes } from '@constants/Routes';
 
 const ROWS = [
-  { label: 'Quiz et catégories', free: true, premium: true },
-  { label: 'Défis de base', free: true, premium: true },
-  { label: 'Classement public', free: true, premium: true },
-  { label: 'Sans publicité', free: false, premium: true },
-  { label: 'Replays illimités', free: false, premium: true },
-  { label: 'Stats avancées', free: false, premium: true },
-  { label: 'Badge Premium', free: false, premium: true },
+  { label: 'Quiz, défis et Arena', free: true, premium: true },
+  { label: 'Classement au même barème', free: true, premium: true },
+  { label: 'Badges gagnés en jouant', free: true, premium: true },
+  { label: '3 parties classées par jour', free: true, premium: false },
+  { label: 'Replays classés sans plafond', free: false, premium: true },
+  { label: 'Carnet d’erreurs et révision', free: false, premium: true },
+  { label: 'Stats 30 jours par catégorie', free: false, premium: true },
+  { label: 'Gel de série et objectif hebdo', free: false, premium: true },
+  { label: 'Badge, cadres et thèmes Premium', free: false, premium: true },
 ] as const;
 
 export function PremiumComparePage() {

@@ -4,11 +4,15 @@ import { useNavigate } from 'react-router-dom';
 import { Icon } from '@components/ui/Icon';
 import { ScoreboardList } from '@components/ui/profile/ScoreboardList';
 import { Routes } from '@constants/Routes';
+import { pickFeaturedBadge } from '@constants/westAfricanBadges';
 import { useGlobalLeaderboard } from '@hooks/useGlobalLeaderboard';
+import { usePlayerBadges } from '@hooks/usePlayerBadges';
 
 export function ScoreboardPage() {
   const navigate = useNavigate();
   const { items, me, loading, error, refetch } = useGlobalLeaderboard(100);
+  const { badges } = usePlayerBadges();
+  const featuredBadge = pickFeaturedBadge(badges);
 
   const onBack = useCallback(() => {
     if (window.history.length > 1) navigate(-1);
@@ -45,6 +49,7 @@ export function ScoreboardPage() {
           loading={loading}
           error={error ? 'Impossible de charger le classement.' : undefined}
           onRetry={() => void refetch()}
+          featuredBadge={featuredBadge}
         />
       </div>
     </div>

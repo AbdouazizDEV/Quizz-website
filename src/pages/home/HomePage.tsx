@@ -25,7 +25,10 @@ import { DefisRoutes } from '@constants/defisRoutes';
 import type { HomeActionTileId } from '@constants/homeActionTiles';
 import { useDailyQuizzes } from '@hooks/useDailyQuizzes';
 import { useHomeFunFacts } from '@hooks/useHomeFunFacts';
+import { BadgeChip } from '@components/ui/badges/BadgeChip';
+import { pickFeaturedBadge } from '@constants/westAfricanBadges';
 import { useAuthMe } from '@hooks/useAuthMe';
+import { usePlayerBadges } from '@hooks/usePlayerBadges';
 import { useDefisDashboard } from '@hooks/defis/useDefisDashboard';
 import { useGlobalLeaderboard } from '@hooks/useGlobalLeaderboard';
 import { useAuthStore } from '@stores/authStore';
@@ -48,6 +51,7 @@ import {
   FALLBACK_HOME_INSIGHTS,
   mapFunFactsToInsights,
 } from '@utils/homeFunFactsDisplay';
+import { premiumStatusPresentation } from '@utils/premiumStatusCopy';
 
 export function HomePage() {
   const navigate = useNavigate();
@@ -57,7 +61,9 @@ export function HomePage() {
   const [activeInsight, setActiveInsight] = useState(0);
   const token = useAuthStore((s) => s.token);
   const hasRegisteredAccount = useAuthStore((s) => s.hasRegisteredAccount);
-  const { data: me, loading: meLoading, refetch: refetchAuthMe } = useAuthMe();
+  const { data: me, loading: meLoading, error: meError, refetch: refetchAuthMe } = useAuthMe();
+  const { badges } = usePlayerBadges();
+  const featuredBadge = pickFeaturedBadge(badges);
   const { data: defisDashboard } = useDefisDashboard(me?.user?.id);
   const { items: leaderboardRows, me: leaderboardMe, refetch: refetchLeaderboard } =
     useGlobalLeaderboard(5);
@@ -245,12 +251,9 @@ export function HomePage() {
     const progressDetail = getLevelProgressDetail(score);
     const progress = progressDetail.progress;
     const { left, right } = levelProgressEndpoints(score);
-    const streak = profile?.streak_days ?? 0;
-    const createdAt = typeof userRaw?.created_at === 'string' ? userRaw.created_at : undefined;
-    const elapsedDays = elapsedDaysSince(createdAt);
-    const daysActive = Math.max(profile?.days_active ?? 0, elapsedDays);
-    const clockLabel =
-      streak > 0 ? formatJoursLabel(streak) : daysActive > 0 ? formatJoursLabel(daysActive) : '0 jour';
+    const createdRaw = (profile as { created_at?: string } | undefined)?.created_at ?? userRaw?.created_at;
+    const createdAt = typeof createdRaw === 'string' ? createdRaw : undefined;
+    const clockLabel = formatJoursLabel(elapsedDaysSince(createdAt));
     const loadingPlaceholders = Boolean(token?.trim()) && meLoading;
     const meRank = leaderboardMe?.rank;
     const gender = resolveProfileGender(
@@ -269,6 +272,7 @@ export function HomePage() {
       displayNameWithEmoji: loadingPlaceholders ? '··· 👋' : `${first} 👋`,
       totalScoreDisplay: loadingPlaceholders ? '—' : String(score),
       levelLabel: formatLevelCodeLabel(levelCode),
+      levelCode,
       rankLabel: meRank ? `#${meRank}` : '#—',
       streakOrDaysLabel: loadingPlaceholders ? '···' : clockLabel,
       progressLabelLeft: left,
@@ -307,6 +311,8 @@ export function HomePage() {
         displayNameWithEmoji={headerVm.displayNameWithEmoji}
         totalScoreDisplay={headerVm.totalScoreDisplay}
         levelLabel={headerVm.levelLabel}
+        levelCode={headerVm.levelCode}
+        featuredBadge={featuredBadge}
         rankLabel={headerVm.rankLabel}
         streakOrDaysLabel={headerVm.streakOrDaysLabel}
         progressLabelLeft={headerVm.progressLabelLeft}
@@ -315,6 +321,34 @@ export function HomePage() {
         progressPercentLabel={headerVm.progressPercentLabel}
         onPressAvatar={() => navigate(Routes.PROFILE)}
       />
+
+      <section className="premium-status-block" aria-live="polite">
+        <h2>
+          {
+            premiumStatusPresentation({
+              loading: meLoading,
+              error: Boolean(meError),
+              premium: me?.premium,
+            }).title
+          }
+          {featuredBadge ? <BadgeChip badge={featuredBadge} /> : null}
+        </h2>
+        <p>
+          {
+            premiumStatusPresentation({
+              loading: meLoading,
+              error: Boolean(meError),
+              premium: me?.premium,
+            }).body
+          }
+        </p>
+        <button type="button" className="premium-status-cta" onClick={() => navigate(Routes.ARENA)}>
+          Entrer dans Arena
+        </button>
+        <button type="button" className="premium-status-cta" onClick={() => navigate(Routes.CARNET)}>
+          Carnet et badges
+        </button>
+      </section>
 
       <div className="home-board">
         <section className="home-section home-board-insights">

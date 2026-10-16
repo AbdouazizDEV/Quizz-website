@@ -9,7 +9,7 @@ import { PREMIUM_PLANS } from './premiumPlans';
 
 export function PremiumPlansPage() {
   const navigate = useNavigate();
-  const [selected, setSelected] = useState<PlanId>('plan_3m');
+  const [selected, setSelected] = useState<PlanId>('plan_12m');
 
   return (
     <PremiumPageShell title="Plans" onBack={() => navigate(Routes.PREMIUM)}>

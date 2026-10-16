@@ -5,6 +5,9 @@ import { QRCodeSVG } from 'qrcode.react';
 import { Routes } from '@constants/Routes';
 import { shareFriendProfile } from '@services/network/shareFriendProfile';
 import { buildFriendQrProfile, encodeFriendQrScanPayload } from '@utils/friendQrPayload';
+import { BadgeChip } from '@components/ui/badges/BadgeChip';
+import { LevelBadge } from '@components/ui/home/LevelBadge';
+import type { PlayerBadgeView } from '@constants/westAfricanBadges';
 import { Icon } from '@components/ui/Icon';
 
 const REF_WIDTH = 390;
@@ -18,6 +21,8 @@ interface HomeHeaderCardProps {
   displayNameWithEmoji?: string;
   totalScoreDisplay?: string;
   levelLabel?: string;
+  levelCode?: string;
+  featuredBadge?: PlayerBadgeView | null;
   rankLabel?: string;
   streakOrDaysLabel?: string;
   progressLabelLeft?: string;
@@ -74,6 +79,8 @@ export function HomeHeaderCard({
   displayNameWithEmoji = 'Joueur 👋',
   totalScoreDisplay = '0',
   levelLabel = '🌱 Niveau 1 · Débutant',
+  levelCode,
+  featuredBadge = null,
   rankLabel = '#—',
   streakOrDaysLabel = '0 jour',
   progressLabelLeft = 'Niv. 1',
@@ -223,11 +230,12 @@ export function HomeHeaderCard({
           {totalScoreDisplay}
         </p>
         <p className="home-score-level" style={{ fontSize: sizes.level }}>
+          <LevelBadge code={levelCode} />
           {levelLabel}
         </p>
         <div className="home-score-meta">
           <div className="home-meta-item" style={{ fontSize: sizes.meta, lineHeight: `${sizes.metaLine}px` }}>
-            <Icon name="award" size={sizes.metaIcon} color="#F1C943" />
+            {featuredBadge ? <BadgeChip badge={featuredBadge} /> : <Icon name="award" size={sizes.metaIcon} color="#F1C943" />}
             {rankLabel}
           </div>
           <div className="home-meta-item" style={{ fontSize: sizes.meta, lineHeight: `${sizes.metaLine}px` }}>

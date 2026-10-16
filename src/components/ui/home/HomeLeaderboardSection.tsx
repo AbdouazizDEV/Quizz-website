@@ -1,3 +1,6 @@
+import { LevelBadge } from '@components/ui/home/LevelBadge';
+import { levelCodeFromScore } from '@utils/levelDisplay';
+
 export interface HomeLeaderboardUser {
   id: string;
   name: string;
@@ -41,6 +44,7 @@ export function HomeLeaderboardSection({ users, onPressAvatar }: HomeLeaderboard
                 )}
               </button>
               <span className="home-rank-name">{user.name}</span>
+              <LevelBadge code={levelCodeFromScore(user.points)} compact />
             </div>
             <span className="home-rank-points">{user.points} pts</span>
           </div>

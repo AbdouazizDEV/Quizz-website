@@ -1,26 +1,20 @@
 import { useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 
-import type { PaymentMethodId, PlanId } from '@app-types/premium.types';
+import type { PlanId } from '@app-types/premium.types';
 import { PremiumPageShell } from '@components/ui/premium/PremiumPageShell';
 import { Routes } from '@constants/Routes';
-import { usePremiumStore } from '@stores/premiumStore';
+import { apiClient } from '@services/api/apiClient';
 
 import { PREMIUM_PLANS } from './premiumPlans';
-
-const METHODS: { id: PaymentMethodId; label: string }[] = [
-  { id: 'wave', label: 'Wave' },
-  { id: 'orange_money', label: 'Orange Money' },
-  { id: 'paypal', label: 'PayPal' },
-];
 
 export function PremiumPaymentPage() {
   const navigate = useNavigate();
   const [params] = useSearchParams();
-  const setActive = usePremiumStore((s) => s.setActive);
   const plan = (params.get('plan') ?? 'plan_1m') as PlanId;
   const selected = PREMIUM_PLANS.find((item) => item.id === plan) ?? PREMIUM_PLANS[0];
-  const [method, setMethod] = useState<PaymentMethodId>('wave');
+  const [error, setError] = useState<string | null>(null);
+  const [pending, setPending] = useState(false);
 
   return (
     <PremiumPageShell title="Paiement" onBack={() => navigate(Routes.PREMIUM_PLANS)}>
@@ -30,32 +24,41 @@ export function PremiumPaymentPage() {
         <em>{selected.hint}</em>
       </section>
 
-      <p className="premium-lead">Moyen de paiement (simulation)</p>
-      <div className="premium-methods">
-        {METHODS.map((item) => (
-          <button
-            key={item.id}
-            type="button"
-            className={method === item.id ? 'premium-method is-selected' : 'premium-method'}
-            onClick={() => setMethod(item.id)}
-          >
-            {item.label}
-          </button>
-        ))}
-      </div>
+      <p className="premium-lead">
+        Wave, Orange Money ou Mixx : le choix se fait sur la page Payfonte. Aucun argent réel en sandbox.
+      </p>
+      {error ? <p className="premium-lead">{error}</p> : null}
 
       <button
         type="button"
         className="premium-cta"
+        disabled={pending}
         onClick={() => {
-          const expires = new Date();
-          expires.setMonth(expires.getMonth() + (plan === 'plan_12m' ? 12 : plan === 'plan_3m' ? 3 : 1));
-          setActive(plan, expires);
-          navigate(Routes.PREMIUM_SUCCESS);
+          setPending(true);
+          setError(null);
+          void apiClient
+            .post<{ url: string }>('/payments/checkout', { plan_id: selected.id })
+            .then((response) => {
+              window.location.assign(response.data.url);
+            })
+            .catch((reason: unknown) => {
+              const message = readError(reason);
+              setError(message);
+              setPending(false);
+            });
         }}
       >
-        Confirmer {selected.price}
+        {pending ? 'Ouverture de Payfonte…' : `Payer ${selected.price}`}
       </button>
     </PremiumPageShell>
   );
+}
+
+function readError(reason: unknown): string {
+  if (reason && typeof reason === 'object' && 'response' in reason) {
+    const data = (reason as { response?: { data?: { message?: unknown; error?: unknown } } }).response?.data;
+    if (typeof data?.message === 'string') return data.message;
+    if (typeof data?.error === 'string') return data.error;
+  }
+  return 'Le paiement n’a pas pu démarrer.';
 }
